@@ -2,6 +2,8 @@
 
 Windows 桌面单宠。应用使用 Electron、React 和 TypeScript，透明窗口会覆盖已连接显示器的区域，宠物空白处点击穿透到桌面。
 
+项目需求、架构与需求变更记录集中在 [`docs/`](docs/)；Codex 项目指令入口保留在根目录 [`AGENTS.md`](AGENTS.md)。
+
 ## 开发
 
 需要 Node.js 20.19 或更新版本。
