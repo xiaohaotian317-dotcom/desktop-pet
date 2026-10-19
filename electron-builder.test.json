@@ -1,0 +1,9 @@
+{
+  "appId": "com.dakuan.desktoppet.test",
+  "productName": "大款桌宠全解锁测试版",
+  "asar": true,
+  "directories": { "output": "release/test" },
+  "files": ["out/**/*", "package.json"],
+  "win": { "target": [{ "target": "portable", "arch": ["x64"] }] },
+  "portable": { "artifactName": "大款桌宠-全服饰解锁测试版-${version}-win-x64.${ext}" }
+}

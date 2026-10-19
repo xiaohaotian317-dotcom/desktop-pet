@@ -1,0 +1,71 @@
+{
+  "name": "dakuan-desktop-pet",
+  "version": "0.3.2",
+  "private": true,
+  "description": "大款桌面宠物",
+  "main": "out/main/index.js",
+  "scripts": {
+    "dev": "electron-vite dev",
+    "build": "electron-vite build",
+    "preview": "electron-vite preview",
+    "dist:win": "pnpm build && electron-builder --win portable --x64 && electron-builder --win portable --arm64 && electron-builder --win nsis --x64",
+    "build:test": "set DAKUAN_TEST_BUILD=1&& electron-vite build",
+    "dist:test": "set DAKUAN_TEST_BUILD=1&& electron-vite build && electron-builder --config electron-builder.test.json --win portable --x64",
+    "typecheck": "tsc --noEmit -p tsconfig.json"
+  },
+  "dependencies": {
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.15.0",
+    "@types/react": "^19.1.0",
+    "@types/react-dom": "^19.1.0",
+    "@vitejs/plugin-react": "^4.5.0",
+    "electron": "44.7.2",
+    "electron-builder": "^26.0.12",
+    "electron-vite": "^4.0.0",
+    "typescript": "^5.8.0",
+    "vite": "^6.3.0"
+  },
+  "build": {
+    "appId": "com.dakuan.desktoppet",
+    "productName": "大款桌宠",
+    "asar": true,
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "out/**/*",
+      "package.json"
+    ],
+    "win": {
+      "target": [
+        {
+          "target": "portable",
+          "arch": [
+            "x64"
+          ]
+        },
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "signAndEditExecutable": false
+    },
+    "portable": {
+      "artifactName": "大款桌宠-兼容便携版-${version}-win-${arch}.${ext}"
+    },
+    "nsis": {
+      "artifactName": "大款桌宠-安装版-${version}-win-x64.${ext}",
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true
+    }
+  }
+}
