@@ -3,10 +3,26 @@ import { createDailyTaskBoard } from '../shared/dailyTasks'
 
 export const AFFECTION_MILESTONES = [0, 100, 200, 500, 900, 1400, 2000, 2700, 3500, 4400, 5400] as const
 
+export function affectionThreshold(level: number) {
+  const index = Math.max(0, Math.floor(level) - 1)
+  if (index < AFFECTION_MILESTONES.length) return AFFECTION_MILESTONES[index]
+  // Keep the old Lv.11 target (6600); each later level needs 100 more points.
+  const extra = index - (AFFECTION_MILESTONES.length - 1)
+  return 5400 + 1200 * extra + 50 * extra * (extra - 1)
+}
+
 export function affectionLevel(points: number) {
+  const safePoints = Number.isFinite(points) ? Math.max(0, points) : 0
+  if (safePoints >= 5400) {
+    let extra = Math.floor((Math.sqrt(1150 ** 2 + 200 * (safePoints - 5400)) - 1150) / 100)
+    // Correct floating point rounding at exact level boundaries.
+    while (affectionThreshold(12 + extra) <= safePoints) extra += 1
+    while (extra > 0 && affectionThreshold(11 + extra) > safePoints) extra -= 1
+    return 11 + extra
+  }
   let level = 1
   for (let index = 1; index < AFFECTION_MILESTONES.length; index += 1) {
-    if (points < AFFECTION_MILESTONES[index]) break
+    if (safePoints < AFFECTION_MILESTONES[index]) break
     level = index + 1
   }
   return level
@@ -14,8 +30,8 @@ export function affectionLevel(points: number) {
 
 export function affectionProgress(points: number) {
   const level = affectionLevel(points)
-  const current = AFFECTION_MILESTONES[level - 1] ?? 0
-  const next = AFFECTION_MILESTONES[level] ?? current + 1200
+  const current = affectionThreshold(level)
+  const next = affectionThreshold(level + 1)
   return { level, current, next, progress: Math.max(0, Math.min(100, ((points - current) / (next - current)) * 100)) }
 }
 
@@ -54,14 +70,22 @@ export const RECIPES: Record<RecipeId, {
   catnip_kibble: { name: '猫薄荷鱼粮', icon: '🐟', outputName: '猫薄荷鱼粮', outputIcon: '🐟', kind: 'cat', hunger: 10, affection: 5, cookMs: 20_000, ingredients: ['wheat', 'catnip'] },
   fish_feast: { name: '鲜鱼猫饭', icon: '🍲', outputName: '鲜鱼猫饭', outputIcon: '🍲', kind: 'cat', hunger: 20, affection: 9, cookMs: 35_000, ingredients: ['catnip', 'fish'] },
   fish_can: { name: '银鱼猫罐头', icon: '🥫', outputName: '银鱼猫罐头', outputIcon: '🥫', kind: 'can', hunger: 30, affection: 13, cookMs: 45_000, ingredients: ['fish', 'milk'] },
-  silverherb_meal: { name: '银叶鲜鱼饭', icon: '🍃🐟', outputName: '银叶鲜鱼饭', outputIcon: '🍃🍲', kind: 'cat', hunger: 24, affection: 11, cookMs: 50_000, ingredients: ['silverherb', 'fish'] }
+  silverherb_meal: { name: '银叶鲜鱼饭', icon: '🍃🐟', outputName: '银叶鲜鱼饭', outputIcon: '🍃🍲', kind: 'cat', hunger: 24, affection: 11, cookMs: 50_000, ingredients: ['silverherb', 'fish'] },
+  goldfish_can: { name: '金鱼奶香罐头', icon: '🐠🥫', outputName: '金鱼奶香罐头', outputIcon: '🐠🥫', kind: 'can', hunger: 36, affection: 16, cookMs: 60_000, ingredients: ['goldfish', 'milk'] }
+}
+
+export function ingredientRecipeHint(ingredient: IngredientId) {
+  return Object.values(RECIPES).filter((recipe) => recipe.ingredients.includes(ingredient)).map((recipe) => {
+    const materials = recipe.ingredients.map((id) => INGREDIENTS.find((item) => item.id === id)!.name).join(' + ')
+    return `${materials} → ${recipe.outputName}`
+  }).join('；')
 }
 
 export const INITIAL_AFFECTION: Record<'dakuan', number> = { dakuan: 0 }
 export const INITIAL_INGREDIENTS: Record<IngredientId, number> = {
   wheat: 0, catnip: 0, carrot: 0, fish: 0, pumpkin: 0, chicken: 0, milk: 0, silverherb: 0, goldfish: 0
 }
-export const INITIAL_PANTRY: Record<RecipeId, number> = { dog_biscuit: 3, catnip_kibble: 3, fish_feast: 0, fish_can: 1, silverherb_meal: 0 }
+export const INITIAL_PANTRY: Record<RecipeId, number> = { dog_biscuit: 3, catnip_kibble: 3, fish_feast: 0, fish_can: 1, silverherb_meal: 0, goldfish_can: 0 }
 
 const ORDER_REFRESH_MS = 2 * 60 * 60_000
 const orderMealPool: RecipeId[] = ['dog_biscuit', 'catnip_kibble', 'fish_feast', 'fish_can', 'silverherb_meal']

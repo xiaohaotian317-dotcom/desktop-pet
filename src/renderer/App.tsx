@@ -7,8 +7,11 @@ import ActivityPages from './ActivityPages'
 import { OutfitStorePage, WardrobePage } from './WardrobePages'
 import { CROPS, INITIAL_AFFECTION, INITIAL_INGREDIENTS, INITIAL_PANTRY, RECIPES, affectionProgress, createOrderBoard, cropGrowth, emptyPlot, localDayKey, orderRequirementStock, unlockedPlotCount } from './activities'
 import { createCosmeticState } from './cosmetics'
-import { OUTFITS, createWardrobeState, normalizeWardrobe, outfitById, refreshOutfitShop, unlockAchievementOutfits } from './outfits'
+import { OUTFITS, createWardrobeState, outfitById, refreshOutfitShop, unlockAchievementOutfits } from './outfits'
 import { isCookingPotUnlocked } from '../shared/kitchenProgression'
+import { redeemGiftCode } from '../shared/rewards'
+import SettingsPage from './SettingsPage'
+import { restoreSavedState } from './savedState'
 
 const PET_WIDTH = 150
 const PET_HEIGHT = 183
@@ -28,8 +31,8 @@ const CAT_EVENTS: Omit<CatEvent, 'id'>[] = [
 const INITIAL: PersistedState = {
   pets: {
     dakuan: { hunger: 80, mood: 80, cleanliness: 80, x: 340, y: 500, lastUpdated: Date.now(), lastBathAt: 0, bathDate: localDayKey(Date.now()), bathsToday: 0, lastAffectionAt: 0, starvingSince: 0, hungerPenaltyHours: 0, weightTenthsJin: '10', lastPoopAt: Date.now() }
-  }, paused: false, soundMuted: false,
-  schemaVersion: 11,
+  }, paused: false, soundMuted: false, soundVolume: 100, redeemedCodes: [],
+  schemaVersion: 12,
   affection: structuredClone(INITIAL_AFFECTION),
   kitchen: { ingredients: structuredClone(INITIAL_INGREDIENTS), pantry: structuredClone(INITIAL_PANTRY), pots: Array.from({ length: 6 }, () => ({ ...EMPTY_COOKING_POT })), lastIngredients: null },
   garden: { plots: Array.from({ length: 10 }, () => emptyPlot()) },
@@ -132,51 +135,6 @@ function clampPet(pet: PetState, info: DesktopInfo): PetState {
   return { ...pet, x: clamp(pet.x, area.x, area.x + area.width - PET_WIDTH), y: clamp(pet.y, area.y, area.y + area.height - PET_HEIGHT - 12) }
 }
 
-function readSavedState(value: PersistedState | null): PersistedState {
-  if (!value?.pets?.dakuan) return { ...structuredClone(INITIAL), orders: createOrderBoard(Date.now()), cosmetics: createCosmeticState(Date.now()), wardrobe: createWardrobeState(Date.now(), IS_TEST_BUILD) }
-  const now = Date.now()
-  const savedOrders = value.orders?.orders?.length === 6 && value.orders.nextRefreshAt > now ? value.orders : createOrderBoard(now)
-  const dailyTasks = value.orders?.dailyTasks?.date === localDayKey(now) && value.orders.dailyTasks.tasks?.length === 3
-    ? value.orders.dailyTasks
-    : createDailyTaskBoard(now)
-  const savedKitchen = value.kitchen
-  const savedGarden = value.garden
-  const restoredPet = { ...INITIAL.pets.dakuan, ...value.pets.dakuan }
-  restoredPet.weightTenthsJin = weightValue(restoredPet.weightTenthsJin).toString()
-  restoredPet.lastPoopAt = Number.isFinite(restoredPet.lastPoopAt) && restoredPet.lastPoopAt > 0 ? restoredPet.lastPoopAt : Date.now()
-  if ((value.schemaVersion ?? 0) < 3) restoredPet.hunger = clamp(100 - (value.pets.dakuan.hunger ?? 20))
-  return {
-    pets: { dakuan: restoredPet },
-    schemaVersion: 11,
-    paused: Boolean(value.paused), soundMuted: Boolean(value.soundMuted),
-    affection: { ...INITIAL.affection, ...(value.affection ?? {}) },
-    kitchen: {
-      ingredients: { ...INITIAL.kitchen.ingredients, ...(savedKitchen?.ingredients ?? {}) },
-      pantry: { ...INITIAL.kitchen.pantry, ...(savedKitchen?.pantry ?? {}) },
-      pots: Array.from({ length: 6 }, (_, index) => ({ ...EMPTY_COOKING_POT, ...(savedKitchen?.pots?.[index] ?? {}) })),
-      lastIngredients: Array.isArray(savedKitchen?.lastIngredients) && savedKitchen.lastIngredients.length === 2 ? savedKitchen.lastIngredients as [IngredientId, IngredientId] : null
-    },
-    garden: { plots: Array.from({ length: 10 }, (_, index) => ({ ...emptyPlot(), ...(savedGarden?.plots?.[index] ?? {}) })) },
-    droppings: Array.isArray(value.droppings) ? value.droppings.slice(-500) : [],
-    compost: {
-      ...INITIAL_COMPOST, ...(value.compost ?? {}),
-      poopCount: Math.max(0, value.compost?.poopCount ?? 0),
-      rainbowPoopCount: Math.max(0, value.compost?.rainbowPoopCount ?? 0),
-      fertilizerCount: Math.max(0, value.compost?.fertilizerCount ?? 0),
-      unlockedPots: Math.max(2, Math.min(5, value.compost?.unlockedPots ?? 2)),
-      ordinarySinceRainbow: Math.max(0, value.compost?.ordinarySinceRainbow ?? 0),
-      nextRainbowAt: Math.max(50, Math.min(100, value.compost?.nextRainbowAt ?? (50 + Math.floor(Math.random() * 51)))),
-      pots: Array.from({ length: 5 }, (_, index) => ({ ...EMPTY_COMPOST_POT, ...(value.compost?.pots?.[index] ?? {}) }))
-    },
-    coins: Math.max(0, Math.floor(value.coins ?? 0)),
-    orders: { ...savedOrders, dailyTasks },
-    constipationMode: Boolean(value.constipationMode),
-    cosmetics: value.cosmetics ?? createCosmeticState(Date.now()),
-    wardrobe: unlockAchievementOutfits(normalizeWardrobe(value.wardrobe, Date.now(), IS_TEST_BUILD), affectionProgress(value.affection?.dakuan ?? 0).level, weightValue(restoredPet.weightTenthsJin), IS_TEST_BUILD),
-    alwaysOnTop: value.alwaysOnTop !== false
-  }
-}
-
 function StatBar({ label, value, reverse = false }: { label: string; value: number; reverse?: boolean }) {
   const quality = reverse ? value : 100 - value
   const tone = quality < 25 ? 'urgent' : quality < 50 ? 'watch' : 'good'
@@ -195,7 +153,9 @@ function PoopMark({ rainbow = false }: { rainbow?: boolean }) {
   </svg>
 }
 
-function playYip() {
+function playYip(volume: number) {
+  const amplitude = Math.max(0, Math.min(100, volume)) / 100
+  if (amplitude === 0) return
   try {
     const AudioContextClass = window.AudioContext
     const audio = new AudioContextClass()
@@ -208,7 +168,7 @@ function playYip() {
       osc.frequency.exponentialRampToValueAtTime(index ? 920 : 1050, start + offset + 0.09)
       osc.frequency.exponentialRampToValueAtTime(index ? 650 : 720, start + offset + 0.22)
       gain.gain.setValueAtTime(0.0001, start + offset)
-      gain.gain.exponentialRampToValueAtTime(0.12, start + offset + 0.035)
+      gain.gain.exponentialRampToValueAtTime(0.12 * amplitude, start + offset + 0.035)
       gain.gain.exponentialRampToValueAtTime(0.0001, start + offset + 0.23)
       osc.connect(gain); gain.connect(audio.destination)
       osc.start(start + offset); osc.stop(start + offset + 0.24)
@@ -221,7 +181,7 @@ export default function App() {
   const [data, setData] = useState<PersistedState>(INITIAL)
   const [desktop, setDesktop] = useState<DesktopInfo>({ origin: { x: 0, y: 0 }, width: window.innerWidth, height: window.innerHeight, displays: [{ x: 0, y: 0, width: window.innerWidth, height: window.innerHeight }] })
   const [selected, setSelected] = useState<PetId | null>(null)
-  const [panelPage, setPanelPage] = useState<1 | 2 | 3 | 4 | 5 | 6 | 7>(1)
+  const [panelPage, setPanelPage] = useState<1 | 2 | 3 | 4 | 5 | 6 | 7 | 8>(1)
   const [clock, setClock] = useState(Date.now())
   const [visualStyle] = useState<PetVisualStyle>(() => localStorage.getItem('petVisualStyle') === 'illustrated' ? 'illustrated' : 'pixel')
   const [facingLeft, setFacingLeft] = useState<Record<PetId, boolean>>({ dakuan: false })
@@ -237,6 +197,8 @@ export default function App() {
   const scheduleCatEventRef = useRef<(delay: number) => void>(() => {})
   const [panelOffset, setPanelOffset] = useState({ x: 0, y: 0 })
   const [ready, setReady] = useState(false)
+  const readyRef = useRef(false)
+  readyRef.current = ready
   const actionsRef = useRef(actions)
   actionsRef.current = actions
   const dataRef = useRef(data)
@@ -265,12 +227,19 @@ export default function App() {
     }
   }, [])
 
+  const quitPet = () => {
+    // IPC messages are handled in order; the main process writes synchronously
+    // before handling app:quit, including the latest in-memory movement state.
+    if (readyRef.current) window.desktopPets.saveState(dataRef.current)
+    window.desktopPets.quit()
+  }
+
   useEffect(() => {
     let mounted = true
     Promise.all([window.desktopPets.loadState(), window.desktopPets.getDesktopInfo()]).then(([saved, info]) => {
       if (!mounted) return
       setDesktop(info)
-      const restored = readSavedState(saved)
+      const restored = restoreSavedState(saved, INITIAL, IS_TEST_BUILD)
       const loadedAt = Date.now()
       const savedPet = restored.pets.dakuan
       if (restored.paused) {
@@ -307,7 +276,7 @@ export default function App() {
     window.desktopPets && window.addEventListener('pet-state-changed', onState)
     // The isolated preload forwards display changes on this custom event.
     window.addEventListener('desktop-info-changed', onDesktop as EventListener)
-    const onEscape = (event: KeyboardEvent) => { if (event.key === 'Escape') window.desktopPets.quit() }
+    const onEscape = (event: KeyboardEvent) => { if (event.key === 'Escape') quitPet() }
     const onGlobalPointerMove = (event: PointerEvent) => {
       lastPointerRef.current = { x: event.clientX, y: event.clientY }
       const hit = document.elementFromPoint(event.clientX, event.clientY)
@@ -473,7 +442,7 @@ export default function App() {
     const chirp = () => {
       const min = 24_000; const delay = min + Math.random() * 30_000
       timeout = window.setTimeout(() => {
-        if (!dataRef.current.soundMuted && !dataRef.current.paused && Math.random() < 0.42) playYip()
+        if (!dataRef.current.soundMuted && !dataRef.current.paused && Math.random() < 0.42) playYip(dataRef.current.soundVolume)
         chirp()
       }, delay)
     }
@@ -489,7 +458,7 @@ export default function App() {
     const duration = catDurations[action] ?? 4200
     actionTimers.current[id] = window.setTimeout(() => setActions((old) => old[id] === action ? { ...old, [id]: 'idle' } : old), duration)
     window.setTimeout(() => setThoughts((old) => ({ ...old, [id]: undefined })), 2300)
-    if (!dataRef.current.soundMuted && (action === 'bark' || action === 'play' || action === 'pet' || action === 'ball')) playYip()
+    if (!dataRef.current.soundMuted && (action === 'bark' || action === 'play' || action === 'pet' || action === 'ball')) playYip(dataRef.current.soundVolume)
   }, [])
 
   useEffect(() => {
@@ -614,8 +583,8 @@ export default function App() {
     const pots = [...current.kitchen.pots]
     pots[potIndex] = { recipeId: null, startedAt: 0, doneAt: 0 }
     let orders = current.orders
-    if (pot.recipeId !== 'dog_biscuit') orders = recordDailyProgress(orders, 'cook-meals', 1, now)
-    if (pot.recipeId === 'fish_can') orders = recordDailyProgress(orders, 'cook-cans', 1, now)
+    if (RECIPES[pot.recipeId].kind !== 'dog') orders = recordDailyProgress(orders, 'cook-meals', 1, now)
+    if (RECIPES[pot.recipeId].kind === 'can') orders = recordDailyProgress(orders, 'cook-cans', 1, now)
     commit({ ...current, kitchen: { ...current.kitchen, pantry, pots }, orders })
   }
 
@@ -630,8 +599,8 @@ export default function App() {
     pots.forEach((pot, index) => {
       if (!pot.recipeId || pot.doneAt > now) return
       pantry[pot.recipeId] += 1
-      if (pot.recipeId !== 'dog_biscuit') catMeals += 1
-      if (pot.recipeId === 'fish_can') cans += 1
+      if (RECIPES[pot.recipeId].kind !== 'dog') catMeals += 1
+      if (RECIPES[pot.recipeId].kind === 'can') cans += 1
       pots[index] = { ...EMPTY_COOKING_POT }
       collected += 1
     })
@@ -926,7 +895,7 @@ export default function App() {
 
   const panelPointerDown = (event: ReactPointerEvent<HTMLElement>) => {
     event.stopPropagation()
-    if ((event.target as HTMLElement).closest('button, input, textarea, select, a')) return
+    if ((event.target as HTMLElement).closest('button, input, textarea, select, a, label')) return
     panelDragRef.current = { pointerId: event.pointerId, startX: event.screenX, startY: event.screenY, offsetX: panelOffset.x, offsetY: panelOffset.y }
     event.currentTarget.setPointerCapture(event.pointerId)
   }
@@ -962,23 +931,27 @@ export default function App() {
       const pos: CSSProperties = { left: pet.x - desktop.origin.x, top: pet.y - desktop.origin.y }
       const localX = pet.x - desktop.origin.x
       const localY = pet.y - desktop.origin.y
-      const panelWidth = panelPage === 1 ? 310 : panelPage === 6 || panelPage === 7 ? Math.min(760, Math.max(360, desktop.width - 28)) : 480
+      const panelWidth = Math.min(desktop.width - 28, panelPage === 1 ? 310 : panelPage === 6 || panelPage === 7 ? 760 : panelPage === 8 ? 420 : 480)
       const panelHeight = Math.min(700, desktop.height * .78)
       const cardOnTop = localY > desktop.height * .52
       const cardFitsRight = localX + PET_WIDTH + panelWidth + 18 < desktop.width
       const cardLeft = cardOnTop ? (localX > desktop.width - panelWidth - 20 ? -panelWidth - 8 : 0) : (cardFitsRight ? 180 : -panelWidth - 10)
-      const cardStyle: CSSProperties = { top: (cardOnTop ? Math.max(-panelHeight, 14 - localY) : 160) + panelOffset.y, left: cardLeft + panelOffset.x }
+      const cardStyle: CSSProperties = {
+        top: clamp((cardOnTop ? localY - panelHeight : localY + 160) + panelOffset.y, 14, Math.max(14, desktop.height - panelHeight - 14)) - localY,
+        left: clamp(localX + cardLeft + panelOffset.x, 14, Math.max(14, desktop.width - panelWidth - 14)) - localX,
+        maxHeight: panelHeight
+      }
       return <div className={`pet-scene ${isSelected ? 'selected' : ''}`} style={pos} key={id}>
         {catEvent && <button className="cat-event-bubble" onClick={collectCatEvent} onPointerEnter={pointerEnter} onPointerLeave={pointerLeave}><b>✨ {catEvent.title}</b><span>{catEvent.description}</span><strong>{catEvent.actionLabel ?? '点我领取'} · {catEvent.reward}</strong></button>}
         {thoughts[id] && <div className="thought">{thoughts[id]}</div>}
-        <button className="pet-button" aria-label={`打开${LABELS[id]}的状态和照料选项`} onPointerEnter={pointerEnter} onPointerLeave={pointerLeave} onPointerDown={(event) => down(id, event)} onPointerMove={(event) => move(id, event)} onPointerUp={up} onPointerCancel={up} onLostPointerCapture={up} onClick={() => { if (suppressClickRef.current) return; togglePetPanel(id, isSelected); if (!data.soundMuted) playYip() }}>
+        <button className="pet-button" aria-label={`打开${LABELS[id]}的状态和照料选项`} onPointerEnter={pointerEnter} onPointerLeave={pointerLeave} onPointerDown={(event) => down(id, event)} onPointerMove={(event) => move(id, event)} onPointerUp={up} onPointerCancel={up} onLostPointerCapture={up} onClick={() => { if (suppressClickRef.current) return; togglePetPanel(id, isSelected); if (!data.soundMuted) playYip(data.soundVolume) }}>
           <span className="character-sizer" style={{ transform: `scale(${scale})` }}><PetCharacter id={id} action={visibleAction} facingLeft={facingLeft[id]} visualStyle={visualStyle} freezeFrames={data.paused || (isSelected && actions[id] === 'idle')} outfit={data.wardrobe.equipped} /></span>
           <span className="name-tag"><i className={`status-dot ${low ? 'needs-care' : ''}`} />{LABELS[id]}{low && <em>{low}</em>}</span>
           {data.paused && <span className="paused-mark">休息中</span>}
         </button>
-        {isSelected && <section className={`care-card ${panelPage === 1 ? 'pet-page-card' : 'activity-card'} ${panelPage === 6 ? 'wardrobe-card' : ''} ${panelPage === 7 ? 'outfit-store-card' : ''}`} style={{ ...cardStyle, width: panelWidth }} aria-label={`${LABELS[id]}状态面板`} onPointerEnter={pointerEnter} onPointerLeave={pointerLeave} onPointerDown={panelPointerDown} onPointerMove={panelPointerMove} onPointerUp={panelPointerUp} onPointerCancel={panelPointerUp}>
-          <div className="card-head"><div><div className="eyebrow">{IS_TEST_BUILD ? '全服饰解锁测试版' : panelPage === 1 ? '陪伴小档案' : '大款的共享空间'}</div><h2>{panelPage === 1 ? LABELS[id] : panelPage === 2 ? '小厨房' : panelPage === 3 ? '小菜园' : panelPage === 4 ? '化肥工坊' : panelPage === 5 ? '订单中心' : panelPage === 6 ? '衣服仓库' : '穿搭商店'} <span>{panelPage === 1 ? '暹罗猫 · 蓝眼重点色' : `当前陪伴：${LABELS[id]}`}</span></h2></div><div className="card-head-actions"><button className={`pin-button ${data.alwaysOnTop !== false ? 'active' : ''}`} onClick={() => commit({ ...dataRef.current, alwaysOnTop: dataRef.current.alwaysOnTop === false })} aria-label={data.alwaysOnTop === false ? '置顶宠物和页面' : '取消宠物和页面置顶'} title={data.alwaysOnTop === false ? '点击后大款和所有页面保持在最前面' : '已置顶：大款和所有页面保持在最前面'}>{data.alwaysOnTop === false ? '📍' : '📌'}</button><button className="icon-button close" onClick={() => { setSelected(null); pointerLeave() }} aria-label="关闭">×</button></div></div>
-          <div className="pet-intro">{panelPage === 1 ? '圆滚滚的大款 · 白手套蓝眼睛' : panelPage === 2 ? '搭配食材，为大款做一顿香喷喷的饭' : panelPage === 3 ? '种下作物，收获新鲜食材' : panelPage === 4 ? '收集便便制作化肥，帮助作物生长' : panelPage === 5 ? '完成订单与每日任务，赚取金币' : panelPage === 6 ? '看看收藏的穿搭，点击就能换装' : '挑选限时上架的大款专属穿搭'}</div>
+        {isSelected && <section key={panelPage} className={`care-card ${panelPage === 1 ? 'pet-page-card' : 'activity-card'} ${panelPage === 6 ? 'wardrobe-card' : ''} ${panelPage === 7 ? 'outfit-store-card' : ''}`} style={{ ...cardStyle, width: panelWidth }} aria-label={`${LABELS[id]}状态面板`} onPointerEnter={pointerEnter} onPointerLeave={pointerLeave} onPointerDown={panelPointerDown} onPointerMove={panelPointerMove} onPointerUp={panelPointerUp} onPointerCancel={panelPointerUp}>
+          <div className="card-head"><div><div className="eyebrow">{IS_TEST_BUILD ? '全服饰解锁测试版' : panelPage === 1 ? '陪伴小档案' : '大款的共享空间'}</div><h2>{panelPage === 1 ? LABELS[id] : panelPage === 2 ? '小厨房' : panelPage === 3 ? '小菜园' : panelPage === 4 ? '化肥工坊' : panelPage === 5 ? '订单中心' : panelPage === 6 ? '衣服仓库' : panelPage === 7 ? '穿搭商店' : '设置'} <span>{panelPage === 1 ? '暹罗猫 · 蓝眼重点色' : `当前陪伴：${LABELS[id]}`}</span></h2></div><div className="card-head-actions"><button className={`pin-button ${data.alwaysOnTop !== false ? 'active' : ''}`} onClick={() => commit({ ...dataRef.current, alwaysOnTop: dataRef.current.alwaysOnTop === false })} aria-label={data.alwaysOnTop === false ? '置顶宠物和页面' : '取消宠物和页面置顶'} title={data.alwaysOnTop === false ? '点击后大款和所有页面保持在最前面' : '已置顶：大款和所有页面保持在最前面'}>{data.alwaysOnTop === false ? '📍' : '📌'}</button><button className="icon-button close" onClick={() => { setSelected(null); pointerLeave() }} aria-label="关闭">×</button></div></div>
+          <div className="pet-intro">{panelPage === 1 ? '圆滚滚的大款 · 白手套蓝眼睛' : panelPage === 2 ? '搭配食材，为大款做一顿香喷喷的饭' : panelPage === 3 ? '种下作物，收获新鲜食材' : panelPage === 4 ? '收集便便制作化肥，帮助作物生长' : panelPage === 5 ? '完成订单与每日任务，赚取金币' : panelPage === 6 ? '看看收藏的穿搭，点击就能换装' : panelPage === 7 ? '挑选限时上架的大款专属穿搭' : '调节声音、兑换礼包，或退出桌宠'}</div>
           <nav className="page-tabs" aria-label="面板页面">
             <button className={panelPage === 1 ? 'active' : ''} onClick={() => setPanelPage(1)}>🐾 宠物</button>
             <button className={panelPage === 2 ? 'active' : ''} onClick={() => setPanelPage(2)}>🍳 厨房</button>
@@ -1004,8 +977,9 @@ export default function App() {
             <div className="care-actions">
               <button className="care-action" onClick={() => care(id, 'walk')}><span>🐾</span>出去逛逛</button><button className="care-action" onClick={() => care(id, 'play')}><span>🎾</span>陪我玩</button><button className="care-action" onClick={() => care(id, 'pet')}><span>🤍</span>摸摸我</button><button className="care-action" onClick={() => care(id, 'sun')}><span>☀️</span>晒太阳</button><button className="care-action" disabled={pet.cleanliness >= 85} title={pet.cleanliness >= 85 ? '清洁度低于 85% 时可以洗澡' : '随时可以洗澡'} onClick={() => care(id, 'bath')}><span>🫧</span>洗澡澡</button>
             </div>
-          </> : panelPage === 6 ? <WardrobePage state={data.wardrobe} action={visibleAction} facingLeft={facingLeft[id]} visualStyle={visualStyle} paused={data.paused} onEquip={equipOutfit} /> : panelPage === 7 ? <OutfitStorePage state={data.wardrobe} coins={data.coins} poopCount={data.compost.poopCount} now={clock} onBuy={buyOutfit} onRedeemPoop={redeemPoopOutfit} /> : <ActivityPages page={panelPage as 2 | 3 | 4 | 5} petId={id} state={data} now={clock} onCook={startCooking} onCollect={collectCooking} onCollectAllMeals={collectAllReadyMeals} onPlant={plantCrop} onPlantAll={plantAllCrops} onWater={waterCrop} onHarvest={harvestCrop} onHarvestAll={harvestAllCrops} onDig={digCrop} onFertilize={fertilizeCrop} onStartFertilizer={startFertilizer} onCollectFertilizer={collectFertilizer} onUnlockFertilizerFactory={unlockFertilizerFactory} onToggleConstipation={(enabled) => { const current = dataRef.current; const pet = { ...current.pets.dakuan, ...(enabled ? { lastPoopAt: Date.now() } : {}) }; commit({ ...current, constipationMode: enabled, pets: { ...current.pets, dakuan: pet } }) }} onClaimOrder={claimOrder} onClaimDailyTask={claimDailyTask} weightTenthsJin={pet.weightTenthsJin} />}
-          <div className="card-footer"><span>{panelPage === 1 ? ACTION_LABEL[actions[id]] : panelPage === 2 ? '做好的餐点会出现在宠物页粮柜' : panelPage === 3 ? '浇水、施肥和作物生长都会保存' : panelPage === 4 ? '收集便便制作化肥，催熟菜园作物' : panelPage === 5 ? '完成订单领取金币，购买喜欢的装饰' : panelPage === 6 ? '选择装饰后会立即同步到桌面大款' : '购买后的整套服饰会保存在衣服仓库'}</span><div className="footer-actions"><button onClick={() => { const next = { ...dataRef.current, soundMuted: !dataRef.current.soundMuted }; commit(next) }} aria-label={data.soundMuted ? '打开宠物叫声' : '静音宠物叫声'}>{data.soundMuted ? '🔇 静音' : '🔔 嘤声'}</button></div></div>
+            <button className="settings-open" onClick={() => setPanelPage(8)}>⚙ 设置</button>
+          </> : panelPage === 8 ? <SettingsPage state={data} onVolume={(soundVolume) => commit({ ...dataRef.current, soundVolume })} onToggleMuted={() => commit({ ...dataRef.current, soundMuted: !dataRef.current.soundMuted })} onPreviewSound={() => { if (!dataRef.current.soundMuted) playYip(dataRef.current.soundVolume) }} onRedeem={(code) => { const result = redeemGiftCode(dataRef.current, code); if (result.success) commit(result.state); return result }} onBack={() => setPanelPage(1)} onQuit={quitPet} /> : panelPage === 6 ? <WardrobePage state={data.wardrobe} action={visibleAction} facingLeft={facingLeft[id]} visualStyle={visualStyle} paused={data.paused} onEquip={equipOutfit} /> : panelPage === 7 ? <OutfitStorePage state={data.wardrobe} coins={data.coins} poopCount={data.compost.poopCount} now={clock} onBuy={buyOutfit} onRedeemPoop={redeemPoopOutfit} visualStyle={visualStyle} /> : <ActivityPages page={panelPage as 2 | 3 | 4 | 5} petId={id} state={data} now={clock} onCook={startCooking} onCollect={collectCooking} onCollectAllMeals={collectAllReadyMeals} onPlant={plantCrop} onPlantAll={plantAllCrops} onWater={waterCrop} onHarvest={harvestCrop} onHarvestAll={harvestAllCrops} onDig={digCrop} onFertilize={fertilizeCrop} onStartFertilizer={startFertilizer} onCollectFertilizer={collectFertilizer} onUnlockFertilizerFactory={unlockFertilizerFactory} onToggleConstipation={(enabled) => { const current = dataRef.current; const pet = { ...current.pets.dakuan, ...(enabled ? { lastPoopAt: Date.now() } : {}) }; commit({ ...current, constipationMode: enabled, pets: { ...current.pets, dakuan: pet } }) }} onClaimOrder={claimOrder} onClaimDailyTask={claimDailyTask} weightTenthsJin={pet.weightTenthsJin} />}
+          <div className="card-footer"><span>{panelPage === 1 ? ACTION_LABEL[actions[id]] : panelPage === 2 ? '做好的餐点会出现在宠物页粮柜' : panelPage === 3 ? '浇水、施肥和作物生长都会保存' : panelPage === 4 ? '收集便便制作化肥，催熟菜园作物' : panelPage === 5 ? '完成订单领取金币，购买喜欢的装饰' : panelPage === 6 ? '选择装饰后会立即同步到桌面大款' : panelPage === 7 ? '购买后的整套服饰会保存在衣服仓库' : '设置和兑换记录会自动保存'}</span></div>
           <button className={`pause-button ${data.paused ? 'is-paused' : ''}`} onClick={togglePaused}>{data.paused ? '▶ 继续活动' : 'Ⅱ 让大款原地休息'}</button>
         </section>}
       </div>

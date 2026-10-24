@@ -7,12 +7,16 @@
 - Electron 44.7.2 提供 Windows 桌面窗口、托盘、IPC、文件系统存档和打包运行时。
 - React 19 + TypeScript + Vite 负责单窗口透明桌宠及交互面板。
 - `src/main/index.ts`：Electron 主进程、窗口生命周期、置顶、托盘、桌面显示器边界、诊断日志、用户数据目录、存档读取/恢复/写入及 IPC。
+- `src/main/stateFiles.ts`：有效状态读取、普通备份、迁移备份和原子写盘；可在隔离临时目录检验真实磁盘行为。
 - `src/preload/index.ts`：通过受限 preload API 暴露状态读取/保存、暂停/静音、桌面信息、指针穿透和退出等功能给 renderer。
 - `src/renderer/main.tsx`：React 启动入口。
 - `src/renderer/App.tsx`：游戏状态总协调，处理状态恢复/默认值归一化、桌宠行为、互动、喂食、体重、排便、订单领取、商店购买及页面切换。
 - `src/renderer/PetCharacter.tsx`：当前动作帧、朝向、显示风格与完整穿搭动作图集的渲染。
 - `src/renderer/ActivityPages.tsx`：厨房、菜园、化肥工坊和订单/每日任务页面。
 - `src/renderer/WardrobePages.tsx`：穿搭仓库预览及商店界面。
+- `src/renderer/SettingsPage.tsx`：同窗口设置页，包含静音、音量、试听、兑换表单和退出。
+- `src/renderer/savedState.ts`：纯函数 `restoreSavedState`，填入新增字段并保留旧资产、计时及穿搭，用于启动恢复与迁移检查。
+- `src/shared/rewards.ts`：声音偏好默认值与兑换码的纯状态转换；兑换奖励与兑换记录一并更新，不重复授予服装所有权。
 - `src/renderer/activities.ts`：食谱、作物成长、亲密度、订单生成/需求与库存逻辑。
 - `src/renderer/outfits.ts`：套装定义、价格/文案、仓库归一化、商店刷新和成就解锁。
 - `src/renderer/cosmetics.ts`：旧的独立装饰系统定义及状态辅助；与完整套装并存的代码需在改动时确认是否仍被界面使用。
@@ -26,9 +30,10 @@
 
 renderer 以共享 `PersistedState` 保存游戏数据。主进程持有最近状态缓存，并以 IPC 提供载入和保存；状态变化会广播回 renderer。页面组件接收状态和回调，由 `App.tsx` 执行业务逻辑再统一提交状态。
 
-`PersistedState`（当前 schemaVersion 11）包含：
+`PersistedState`（当前 schemaVersion 12）包含：
 
 - `pets`、`affection`、`paused`、`soundMuted`、`alwaysOnTop`
+- `soundVolume`（0–100，旧档默认 100）、`redeemedCodes`（旧档默认空数组；“大款”礼包使用稳定 ID `dakuan-welcome`）
 - `kitchen`（食材、粮柜、6 个锅及最近食材搭配）
 - `garden`（10 个地块）
 - `droppings`、`compost`（便便、彩色便便、化肥与最多 5 个制作槽）
@@ -44,6 +49,7 @@ renderer 以共享 `PersistedState` 保存游戏数据。主进程持有最近�
 - 测试版隔离目录：`%APPDATA%\DakuanDesktopPet-Test`。
 - 主进程启动会扫描当前路径、`.bak` 以及若干历史应用目录/便携目录中的旧状态，比较有效性和进度后决定恢复来源。
 - 主进程保存时先复制有效现档到 `pet-state.json.bak`，再写临时文件并原子重命名覆盖主档。
+- schema 提升时先保留 `pet-state.json.schema-旧版本号.bak`，同一 schema 的后续保存不覆盖该迁移副本。
 - 损坏主档会保留 `.corrupt-backup`；恢复替换时会保留 `.recovered-backup` 并写 `logs/startup.log`。
 - 代码修改不得削弱上述保护。任何数据迁移要避免空白记录覆盖进度更高的备份；对“进度评分”新增重要资产字段时，要考虑评分是否会因此把富存档错判为低进度。
 - 另一台电脑的便携版不会自动读取本机档案；需要复制主档和备份。
@@ -54,6 +60,14 @@ renderer 以共享 `PersistedState` 保存游戏数据。主进程持有最近�
 - `setAlwaysOnTop` 使用 `screen-saver` 层级；面板与宠物同属主窗口，需一起保持置顶。
 - 启动窗口有加载/超时显示和错误诊断逻辑；日志在 `%APPDATA%\DakuanDesktopPet\logs\startup.log`。
 - 菜园铲子通过发布资源中的系统 `.cur` 光标和配套 SVG 实现；检查打包资源路径及 hotspot。
+- 页面宽高和拖动位置按屏幕边界约束；桌面根容器使用 `overflow: clip` 防止聚焦底部按钮时把整个透明桌面滚出屏幕。页面切换重新建立面板滚动位置。
+
+## 等级、食谱与商店预览
+
+- `affectionThreshold` 是等级门槛来源，等级计算与进度条共享门槛；保留原 1–11 级累计值，12 级为 6600，之后每级需求递增 100。用公式定位等级，并校正浮点边界，支持一次获得大量亲密度后跨级。
+- `RECIPES` 新增 `goldfish_can`（金鱼果 + 奶果），目录、成品列表和喂食由配方表驱动；`ingredientRecipeHint` 从同一配方表生成种子提示/作物用途。
+- 商店点击缩略图显示页内详情，用 `PetCharacter` 的同一套装图集绘制静止大图，避免独立弹窗。预览状态不写入所有权，也不更换桌面套装。
+- Web Audio 每次叫声的增益乘以持久化音量；0 音量不创建叫声。退出按钮与 Esc 共用先发送状态保存、再退出的入口。
 
 ## 美术与动画
 
@@ -64,7 +78,9 @@ renderer 以共享 `PersistedState` 保存游戏数据。主进程持有最近�
 
 ## 构建与资源排除
 
-- 包管理器：pnpm；`package.json` 版本当前为 0.3.2。
+- 包管理器：pnpm；`package.json` 版本当前为 0.3.3。
 - `pnpm dev` 开发；`pnpm build` 构建 renderer/main；`pnpm dist:win` 生成 x64 便携、ARM64 便携和 x64 安装包；`pnpm dist:test` 生成使用独立标识/存档目录的测试包。
 - Windows 发行配置在 `package.json`；全服饰解锁测试配置在 `electron-builder.test.json`。
+- 打包仅包含 `out/main/`、`out/preload/`、`out/renderer/` 和 `package.json`；预览助手与检查数据不进入发布包。
 - `.gitignore` 排除 `node_modules/`、`.pnpm-store/`、`out/`、`release/` 和日志。源码仓库默认不包含可执行发布包。
+- `node scripts/check-game-rules.cjs` 检查实际规则模块的等级边界、旧档归一化、礼包重入/重启及新配方；使用合成数据，不读写真实玩家存档。

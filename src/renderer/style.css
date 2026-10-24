@@ -2,7 +2,7 @@
 * { box-sizing: border-box; }
 html, body, #root { width: 100%; height: 100%; margin: 0; overflow: hidden; background: transparent; }
 body { user-select: none; }
-.desktop { position: fixed; inset: 0; overflow: hidden; pointer-events: none; background: transparent; }
+.desktop { position: fixed; inset: 0; overflow: clip; pointer-events: none; background: transparent; }
 .pet-scene { position: absolute; width: 170px; height: 420px; pointer-events: none; z-index: 2; }
 .pet-scene.selected { z-index: 5; }
 .pet-button { position: absolute; left: 0; top: 0; display: flex; align-items: center; flex-direction: column; width: 150px; height: 183px; border: 0; padding: 0; background: transparent; color: inherit; cursor: grab; touch-action: none; pointer-events: auto; outline: none; }
@@ -463,5 +463,48 @@ body { user-select: none; }
 .affection-card small, .weight-card small, .care-action small { font-size: 10px; }
 .pause-button { font-size: 12px; }
 .footer-actions button { font-size: 11px; }
+
+.activity-summary { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; color: #796a53; font-size: 11px; font-weight: 700; }
+.activity-summary > span:first-child { flex: 1; min-width: 150px; line-height: 1.5; }
+.crop-recipe-hint { margin: 8px 0; color: #686d4e; font-size: 11px; line-height: 1.6; }
+.outfit-preview-trigger { width: 100%; padding: 0; border: 0; border-radius: 10px; background: transparent; text-align: left; font: inherit; cursor: pointer; }
+.outfit-preview-trigger:hover { background: #f7f0df; }
+.outfit-preview-trigger > span:last-child { display: grid; gap: 5px; min-width: 0; }
+.outfit-preview-trigger small { color: #8c774c; font-size: 11px; }
+.outfit-preview-trigger:focus-visible, .settings-page button:focus-visible, .store-preview-heading button:focus-visible { outline: 2px solid #7c965d; outline-offset: 3px; }
+.store-outfit-preview { display: grid; gap: 10px; padding: 12px; border: 1px solid #e9dfcc; border-radius: 15px; background: #fffdf7; }
+.store-preview-heading { position: sticky; top: 0; z-index: 1; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; padding: 4px 0; background: #fffdf7; color: #62533e; font-size: 14px; }
+.care-card { overflow-anchor: none; }
+.store-preview-heading button, .settings-back { min-height: 32px; padding: 5px 10px; border: 1px solid #e6dcc9; border-radius: 9px; background: #f8f1e3; color: #756047; font: inherit; font-size: 12px; cursor: pointer; }
+.store-outfit-stage { display: grid; place-items: center; min-height: 330px; overflow: hidden; border-radius: 14px; background: radial-gradient(ellipse at 50% 65%,#fffdf6,#f3e5ca); }
+.store-outfit-sizer { display: block; width: 150px; height: 150px; transform: scale(1.85); }
+.store-outfit-stage .character-layer { image-rendering: auto !important; }
+.store-outfit-preview p { margin: 0; color: #6d6050; font-size: 13px; line-height: 1.7; }
+.store-outfit-preview p.store-preview-story { color: #978874; font-size: 12px; }
+.settings-open { width: 100%; margin-top: 14px; min-height: 35px; border: 1px solid #dedbcf; border-radius: 10px; background: #f3f1eb; color: #686b69; font: inherit; font-size: 12px; font-weight: 800; cursor: pointer; }
+.settings-page { display: grid; gap: 12px; padding-top: 4px; }
+.settings-back { justify-self: start; }
+.settings-section { min-width: 0; padding: 14px; border: 1px solid #e7dfcf; border-radius: 14px; background: #fffdf7; }
+.settings-section-heading { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; margin-bottom: 10px; color: #625744; font-size: 14px; }
+.settings-section-heading small { color: #86966d; font-size: 11px; }
+.settings-section p { margin: 7px 0; color: #998b77; font-size: 12px; line-height: 1.6; }
+.settings-page button { cursor: pointer; }
+.settings-section button { min-height: 32px; padding: 5px 10px; border: 0; border-radius: 8px; background: #829d62; color: #fff; font: inherit; font-size: 12px; }
+.settings-section button:disabled { background: #d7d3c8; color: #8b887d; cursor: default; }
+.volume-label { display: flex; justify-content: space-between; color: #7a705e; font-size: 13px; }
+.settings-section input[type=range] { width: 100%; min-height: 30px; margin: 7px 0; accent-color: #829d62; cursor: pointer; }
+.volume-actions { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.volume-actions small { color: #a39580; font-size: 11px; }
+.redeem-code-form { display: flex; gap: 8px; }
+.redeem-code-form input { flex: 1; min-width: 0; min-height: 36px; padding: 7px 10px; border: 1px solid #ddd3be; border-radius: 8px; background: white; color: #655842; font: inherit; font-size: 13px; user-select: text; }
+.settings-section p.redeem-result { color: #b57252; }
+.settings-section p.redeem-result.success { color: #6e8b4d; }
+.settings-quit { min-height: 36px; border: 1px solid #e2c9bd; border-radius: 10px; background: #f7ece5; color: #9c634f; font: inherit; font-size: 13px; font-weight: 800; }
+.settings-quit-note { color: #a49887; font-size: 11px; text-align: center; }
+@media (max-width: 480px) {
+  .store-outfit-stage { min-height: 280px; }
+  .store-outfit-sizer { transform: scale(1.45); }
+  .store-outfit-preview .cosmetic-store-buy-row { align-items: stretch; flex-direction: column; }
+}
 
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; scroll-behavior: auto !important; } }

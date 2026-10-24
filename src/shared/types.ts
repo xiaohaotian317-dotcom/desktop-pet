@@ -5,7 +5,7 @@ export type CosmeticId = 'bell-gold' | 'bell-blue' | 'bell-rose' | 'shirt-berry'
 export type OutfitId = 'gentleman-red' | 'christmas' | 'sailor' | 'spring-hanfu' | 'gardener' | 'chef' | 'detective' | 'little-wealth-god' | 'blue-white-porcelain' | 'dunhuang' | 'affection-heart' | 'ton-champion' | 'poop-pudding'
 export type IngredientId = 'wheat' | 'catnip' | 'carrot' | 'fish' | 'pumpkin' | 'chicken' | 'milk' | 'silverherb' | 'goldfish'
 export type CropId = 'wheat' | 'catnip' | 'carrot' | 'fishTree' | 'pumpkin' | 'chickenBerry' | 'milkBerry' | 'salmonTree' | 'silverHerb' | 'goldfishTree'
-export type RecipeId = 'dog_biscuit' | 'catnip_kibble' | 'fish_feast' | 'fish_can' | 'silverherb_meal'
+export type RecipeId = 'dog_biscuit' | 'catnip_kibble' | 'fish_feast' | 'fish_can' | 'silverherb_meal' | 'goldfish_can'
 
 export interface PetState {
   hunger: number
@@ -136,6 +136,8 @@ export interface PersistedState {
   pets: Record<PetId, PetState>
   paused: boolean
   soundMuted: boolean
+  soundVolume: number
+  redeemedCodes: string[]
   affection: Record<PetId, number>
   kitchen: KitchenState
   garden: GardenState

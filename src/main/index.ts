@@ -1,8 +1,9 @@
 import { app, BrowserWindow, dialog, ipcMain, Menu, screen, Tray, nativeImage } from 'electron'
 import { join } from 'node:path'
-import { appendFileSync, copyFileSync, existsSync, mkdirSync, readFileSync, readdirSync, renameSync, writeFileSync } from 'node:fs'
+import { appendFileSync, copyFileSync, existsSync, mkdirSync, readFileSync, readdirSync } from 'node:fs'
 import type { DesktopInfo, PersistedState } from '../shared/types'
 import { createDailyTaskBoard } from '../shared/dailyTasks'
+import { atomicWriteState, readStateFile, writeStateFile } from './stateFiles'
 
 let petWindow: BrowserWindow | null = null
 let tray: Tray | null = null
@@ -51,13 +52,6 @@ const stableDataDirectory = join(app.getPath('appData'), __DAKUAN_TEST_BUILD__ ?
 mkdirSync(stableDataDirectory, { recursive: true })
 app.setPath('userData', stableDataDirectory)
 
-function readStateFile(file: string): PersistedState | null {
-  try {
-    const parsed = JSON.parse(readFileSync(file, 'utf8')) as PersistedState
-    return parsed?.pets?.dakuan ? parsed : null
-  } catch { return null }
-}
-
 function stateProgressScore(state: PersistedState) {
   const number = (value: unknown) => Number.isFinite(Number(value)) ? Math.max(0, Number(value)) : 0
   const weight = /^\d+$/u.test(state.pets?.dakuan?.weightTenthsJin ?? '') ? Number(BigInt(state.pets.dakuan.weightTenthsJin) / 10n) : 1
@@ -104,22 +98,17 @@ function legacyStatePaths() {
   return [...new Set(paths)]
 }
 
-function atomicWriteState(file: string, contents: string) {
-  mkdirSync(join(file, '..'), { recursive: true })
-  const temporary = `${file}.${process.pid}.tmp`
-  writeFileSync(temporary, contents, 'utf8')
-  renameSync(temporary, file)
-}
-
 const initialState: PersistedState = {
   pets: { dakuan: { hunger: 80, mood: 80, cleanliness: 80, x: 340, y: 500, lastUpdated: Date.now(), lastBathAt: 0, bathDate: localDayKey(), bathsToday: 0, lastAffectionAt: 0, starvingSince: 0, hungerPenaltyHours: 0, weightTenthsJin: '10', lastPoopAt: Date.now() } },
   paused: false,
   soundMuted: false,
-  schemaVersion: 11,
+  soundVolume: 100,
+  redeemedCodes: [],
+  schemaVersion: 12,
   affection: { dakuan: 0 },
   kitchen: {
     ingredients: { wheat: 0, catnip: 0, carrot: 0, fish: 0, pumpkin: 0, chicken: 0, milk: 0, silverherb: 0, goldfish: 0 },
-    pantry: { dog_biscuit: 3, catnip_kibble: 3, fish_feast: 0, fish_can: 1, silverherb_meal: 0 },
+    pantry: { dog_biscuit: 3, catnip_kibble: 3, fish_feast: 0, fish_can: 1, silverherb_meal: 0, goldfish_can: 0 },
     pots: Array.from({ length: 6 }, () => ({ recipeId: null, startedAt: 0, doneAt: 0 })),
     lastIngredients: null
   },
@@ -177,9 +166,7 @@ function savePersistedState(state: PersistedState) {
   persisted = state
   try {
     const file = getStatePath()
-    const backup = `${file}.bak`
-    if (existsSync(file) && readStateFile(file)) copyFileSync(file, backup)
-    atomicWriteState(file, JSON.stringify(state, null, 2))
+    writeStateFile(file, state)
   } catch (error) { writeDiagnostic(`保存宠物状态失败：${error instanceof Error ? error.message : String(error)}`) }
   if (petWindow && !petWindow.isDestroyed()) petWindow.webContents.send('state:changed', state)
   applyAlwaysOnTop(state.alwaysOnTop !== false)

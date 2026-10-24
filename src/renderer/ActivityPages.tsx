@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import type { CompostState, GardenPlotState, IngredientId, PetId, PersistedState, RecipeId, CropId } from '../shared/types'
-import { CROPS, INGREDIENTS, RECIPES, cropGrowth, localDayKey, orderRequirementLabel, orderRequirementStock, unlockedPlotCount } from './activities'
+import { CROPS, INGREDIENTS, RECIPES, cropGrowth, ingredientRecipeHint, localDayKey, orderRequirementLabel, orderRequirementStock, unlockedPlotCount } from './activities'
 import kitchenBackground from './assets/rooms/kitchen-reference.png'
 import gardenBackground from './assets/rooms/garden-reference.png'
 import { isCookingPotUnlocked, POT_WEIGHT_UNLOCKS_TENTHS_JIN, unlockedCookingPotCount } from '../shared/kitchenProgression'
@@ -70,7 +70,7 @@ function KitchenPage({ state, now, onCook, onCollect, onCollectAllMeals, weightT
   }
 
   return <div className="activity-page kitchen-page" style={{ backgroundImage: `linear-gradient(180deg, rgba(255,249,235,.20), rgba(255,249,235,.70) 48%, rgba(255,249,235,.97) 100%), url(${kitchenBackground})` }}>
-    <div className="activity-title-row"><div><span className="activity-kicker">SHARED KITCHEN</span><h3>小厨房</h3><p>第 3、4、5、6 口锅分别在 20 斤、100 斤、500 斤、2 吨解锁。</p></div><span className="activity-badge">🍳 {unlockedPots}/6 口锅</span></div>
+    <div className="activity-summary"><span>第 3–6 口锅：20 斤 / 100 斤 / 500 斤 / 2 吨解锁</span><span className="activity-badge">🍳 {unlockedPots}/6 口锅</span></div>
     <button className="pantry-all-button" disabled={!readyMeals} onClick={() => { const count = onCollectAllMeals(); setNotice(`一键收进粮柜 ${count} 份餐点。`); window.setTimeout(() => setNotice(''), 1800) }}>📦 一键收进粮柜（{readyMeals}）</button>
 
     <div className="pots-row">
@@ -119,7 +119,7 @@ function KitchenPage({ state, now, onCook, onCollect, onCollectAllMeals, weightT
       </div>
     </section>
     {notice && <div className="activity-toast kitchen-toast">✨ {notice}</div>}
-    <div className="kitchen-note">成品数量：鸡肉小饼 {state.kitchen.pantry.dog_biscuit} · 猫粮 {state.kitchen.pantry.catnip_kibble + state.kitchen.pantry.fish_feast} · 银叶鲜鱼饭 {state.kitchen.pantry.silverherb_meal} · 猫罐头 {state.kitchen.pantry.fish_can}</div>
+    <div className="kitchen-note">{(Object.entries(RECIPES) as [RecipeId, (typeof RECIPES)[RecipeId]][]).map(([id, recipe]) => `${recipe.outputName} ${state.kitchen.pantry[id]}`).join(' · ')}</div>
   </div>
 }
 
@@ -162,8 +162,8 @@ function GardenPage({ petId, state, now, onPlant, onPlantAll, onWater, onHarvest
   const lockedCrops = CROPS.filter((item) => highestAffection < item.unlockAt).length
 
   return <div className={`activity-page garden-page ${shovelMode ? 'shovel-mode' : ''}`} style={{ backgroundImage: `linear-gradient(180deg, rgba(236,255,206,.10), rgba(238,255,219,.48) 45%, rgba(250,255,236,.98) 100%), url(${gardenBackground})` }}>
-    <div className="activity-title-row"><div><span className="activity-kicker">SHARED GARDEN</span><h3>小小菜园</h3><p>亲密度最高的那只宠物会带大家解锁新种子。</p></div><span className="activity-badge garden-badge">🌱 {unlockedPlots}/10 块地</span></div>
-    <div className="garden-summary"><span>每块地间隔 10 分钟浇水 · 每天最多 4 次</span><b>最高亲密度 {highestAffection} · {lockedCrops ? `还有 ${lockedCrops} 种待解锁` : '种子全解锁啦'}</b></div>
+    <div className="activity-summary"><span>亲密度 {highestAffection} · {lockedCrops ? `还有 ${lockedCrops} 种种子待解锁` : '种子已全部解锁'}</span><span className="activity-badge garden-badge">🌱 {unlockedPlots}/10 块地</span></div>
+    <div className="garden-summary"><span>每块地间隔 10 分钟浇水 · 每天最多 4 次</span></div>
     <div className="garden-bulk-actions"><button className="harvest-all-button" disabled={ripeCount === 0} onClick={() => { onHarvestAll(); setSelectedPlot(null); showNotice(`一键收获完成，共收下 ${ripeCount} 株成熟作物。`) }}>🧺 一键收获（{ripeCount}）</button><button className={`shovel-toggle ${shovelMode ? 'active' : ''}`} onClick={() => setShovelMode((mode) => !mode)}>{shovelMode ? '🪏 正在铲除 · 点击植物' : '🪏 铲子工具'}</button></div>
     <div className="garden-grid">
       {state.garden.plots.slice(0, 10).map((item, index) => {
@@ -187,12 +187,13 @@ function GardenPage({ petId, state, now, onPlant, onPlantAll, onWater, onHarvest
       : !plot?.cropId ? <section className="plot-detail"><div className="section-label"><span>第 {selectedPlot + 1} 块地 · 选择种子</span><small>亲密度解锁新作物</small></div><div className="seed-grid">
         {CROPS.map((item) => {
           const unlocked = highestAffection >= item.unlockAt
-          return <button key={item.id} disabled={!unlocked} className={`seed-option ${unlocked ? '' : 'seed-locked'}`} onClick={() => { onPlant(selectedPlot, item.id); setSelectedPlot(null); showNotice(`种下${item.name}啦，记得来看它长大。`, selectedPlot) }}>
+          return <button key={item.id} disabled={!unlocked} title={ingredientRecipeHint(item.ingredient) || '收获后放入厨房食材仓库'} className={`seed-option ${unlocked ? '' : 'seed-locked'}`} onClick={() => { onPlant(selectedPlot, item.id); setSelectedPlot(null); showNotice(`种下${item.name}啦，记得来看它长大。`, selectedPlot) }}>
             <span>{unlocked ? item.icon : '🔒'}</span><b>{item.name}</b><small>{unlocked ? prettyTime(item.growMs) : `亲密度 ${item.unlockAt}`}</small>
           </button>
         })}
       </div></section>
         : crop && growth ? <section className="plot-detail crop-detail"><div className="crop-detail-head"><span className="crop-big-icon">{crop.icon}</span><div><b>第 {selectedPlot + 1} 块地 · {crop.name}</b><small>{growth.ready ? '成熟啦，可以采摘！' : `${prettyTime(Math.max(0, crop.growMs - growth.elapsed))} 后成熟`}</small></div></div>
+          {ingredientRecipeHint(crop.ingredient) && <p className="crop-recipe-hint">🍳 用途：{ingredientRecipeHint(crop.ingredient)}</p>}
           <div className="growth-bar"><i style={{ width: `${growth.progress}%` }} /></div><div className="growth-stages"><span className={growth.progress < 30 ? 'active' : ''}>小苗 0–30%</span><span className={growth.progress >= 30 && growth.progress < 70 ? 'active' : ''}>生长 30–70%</span><span className={growth.progress >= 70 ? 'active' : ''}>成熟 70–100%</span></div>
           {!growth.ready && <div className="water-row"><button className="water-button" disabled={!canWater} onClick={() => { onWater(selectedPlot); showNotice('浇透啦，作物一下子长快了！', selectedPlot) }}>💧 浇水（立即完成 20%）</button><span>{wateredToday}/4 次 · {waterCooldown > 0 ? `${prettyTime(waterCooldown)}后可浇` : wateredToday >= 4 ? '今天次数已用完' : '可浇水'}</span></div>}
           {!growth.ready && <button className="fertilize-button" disabled={state.compost.fertilizerCount < 1} onClick={() => { if (onFertilize(selectedPlot)) showNotice('施肥成功，这株作物立即成熟啦！', selectedPlot) }}>🧪 施肥催熟（剩余 {state.compost.fertilizerCount}）</button>}
@@ -207,7 +208,7 @@ function GardenPage({ petId, state, now, onPlant, onPlantAll, onWater, onHarvest
 function CompostPage({ state, now, onStartFertilizer, onCollectFertilizer, onUnlockFertilizerFactory, onToggleConstipation }: Pick<Props, 'state' | 'now' | 'onStartFertilizer' | 'onCollectFertilizer' | 'onUnlockFertilizerFactory' | 'onToggleConstipation'>) {
   const [notice, setNotice] = useState('')
   return <div className="activity-page compost-page">
-    <div className="activity-title-row"><div><span className="activity-kicker">FERTILIZER WORKSHOP</span><h3>便便化肥工坊</h3><p>15 坨便便制作一份化肥，需等待 20 分钟。</p></div><span className="activity-badge">🧪 化肥 ×{state.compost.fertilizerCount}</span></div>
+    <div className="activity-summary"><span>15 坨便便 → 1 个化肥 · 制作需 20 分钟</span><span className="activity-badge">🧪 化肥 ×{state.compost.fertilizerCount}</span></div>
     <div className="constipation-card"><div><b>便秘模式</b><small>勾选后大款不会再生成便便。</small></div><input aria-label="便秘模式" type="checkbox" checked={state.constipationMode} onChange={(event) => onToggleConstipation(event.target.checked)} /></div>
     <div className="compost-stock">💩 普通便便 <b>{state.compost.poopCount}</b> 坨　·　🌈 彩色便便 <b>{state.compost.rainbowPoopCount}</b> 坨</div>
     {state.compost.unlockedPots < 5 && <div className="factory-unlock"><b>解锁化肥加工厂（{state.compost.unlockedPots}/5）</b><div><button disabled={state.compost.poopCount < 200} onClick={() => { if (onUnlockFertilizerFactory('poop')) setNotice('已用 200 坨普通便便解锁一个加工厂。') }}>💩 200 坨解锁</button><button disabled={state.compost.rainbowPoopCount < 5} onClick={() => { if (onUnlockFertilizerFactory('rainbow')) setNotice('已用 5 坨彩色便便解锁一个加工厂。') }}>🌈 5 坨解锁</button></div></div>}
@@ -232,7 +233,7 @@ function OrdersPage({ state, now, onClaimOrder, onClaimDailyTask }: Pick<Props, 
   const dailyMinutes = Math.ceil(dailyRemaining / 60_000)
   const dailyResetText = dailyMinutes >= 60 ? `${Math.floor(dailyMinutes / 60)}小时${dailyMinutes % 60 ? `${dailyMinutes % 60}分` : ''}` : `${dailyMinutes}分钟`
   return <div className="activity-page orders-page">
-    <div className="activity-title-row"><div><span className="activity-kicker">DELIVERY ORDERS</span><h3>订单中心</h3><p>交付订单中的物品领取金币；每 2 小时刷新整张订单板。</p></div><span className="activity-badge">🪙 {state.coins} 金币</span></div>
+    <div className="activity-summary"><span>交付物品领取金币 · 每 2 小时刷新</span><span className="activity-badge">🪙 {state.coins} 金币</span></div>
     <section className="daily-task-panel">
       <div className="daily-task-heading"><b>🌞 每日任务</b><span>每日 00:00 刷新 · {dailyResetText}后</span></div>
       <div className="daily-task-list">{state.orders.dailyTasks.tasks.map((task, index) => {
