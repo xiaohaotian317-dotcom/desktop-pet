@@ -12,6 +12,9 @@ import { isCookingPotUnlocked } from '../shared/kitchenProgression'
 import { redeemGiftCode } from '../shared/rewards'
 import SettingsPage from './SettingsPage'
 import { restoreSavedState } from './savedState'
+import RestaurantPage, { playCafeSound } from './RestaurantPage'
+import { createRestaurantState, isRestaurantServing, restaurantAction } from '../shared/restaurant'
+import type { RestaurantAction } from '../shared/restaurant'
 
 const PET_WIDTH = 150
 const PET_HEIGHT = 183
@@ -32,12 +35,12 @@ const INITIAL: PersistedState = {
   pets: {
     dakuan: { hunger: 80, mood: 80, cleanliness: 80, x: 340, y: 500, lastUpdated: Date.now(), lastBathAt: 0, bathDate: localDayKey(Date.now()), bathsToday: 0, lastAffectionAt: 0, starvingSince: 0, hungerPenaltyHours: 0, weightTenthsJin: '10', lastPoopAt: Date.now() }
   }, paused: false, soundMuted: false, soundVolume: 100, redeemedCodes: [],
-  schemaVersion: 12,
+  schemaVersion: 13,
   affection: structuredClone(INITIAL_AFFECTION),
   kitchen: { ingredients: structuredClone(INITIAL_INGREDIENTS), pantry: structuredClone(INITIAL_PANTRY), pots: Array.from({ length: 6 }, () => ({ ...EMPTY_COOKING_POT })), lastIngredients: null },
   garden: { plots: Array.from({ length: 10 }, () => emptyPlot()) },
   droppings: [], compost: structuredClone(INITIAL_COMPOST), coins: 0, orders: createOrderBoard(Date.now()), constipationMode: false,
-  cosmetics: createCosmeticState(Date.now()), wardrobe: createWardrobeState(Date.now(), IS_TEST_BUILD), alwaysOnTop: true
+  cosmetics: createCosmeticState(Date.now()), wardrobe: createWardrobeState(Date.now(), IS_TEST_BUILD), restaurant: createRestaurantState(), alwaysOnTop: true
 }
 
 const LABELS: Record<PetId, string> = { dakuan: '大款' }
@@ -181,8 +184,9 @@ export default function App() {
   const [data, setData] = useState<PersistedState>(INITIAL)
   const [desktop, setDesktop] = useState<DesktopInfo>({ origin: { x: 0, y: 0 }, width: window.innerWidth, height: window.innerHeight, displays: [{ x: 0, y: 0, width: window.innerWidth, height: window.innerHeight }] })
   const [selected, setSelected] = useState<PetId | null>(null)
-  const [panelPage, setPanelPage] = useState<1 | 2 | 3 | 4 | 5 | 6 | 7 | 8>(1)
+  const [panelPage, setPanelPage] = useState<1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9>(1)
   const [clock, setClock] = useState(Date.now())
+  const [restaurantMessage, setRestaurantMessage] = useState('')
   const [visualStyle] = useState<PetVisualStyle>(() => localStorage.getItem('petVisualStyle') === 'illustrated' ? 'illustrated' : 'pixel')
   const [facingLeft, setFacingLeft] = useState<Record<PetId, boolean>>({ dakuan: false })
   const facingLeftRef = useRef(facingLeft)
@@ -233,6 +237,40 @@ export default function App() {
     if (readyRef.current) window.desktopPets.saveState(dataRef.current)
     window.desktopPets.quit()
   }
+
+  const operateRestaurant = (action: RestaurantAction) => {
+    const current = dataRef.current
+    if (!readyRef.current) return { message: '正在读取进度，请稍等。' }
+    if (current.paused && action.type !== 'upgrade') return { message: '大款正在休息，请先点击“继续活动”。' }
+    const result = restaurantAction(current.restaurant, current.coins, action)
+    if (result.restaurant !== current.restaurant || result.coins !== current.coins) commit({ ...current, restaurant: result.restaurant, coins: result.coins })
+    return result
+  }
+
+  useEffect(() => {
+    if (!ready || panelPage !== 9 || selected !== 'dakuan') return
+    let lastTick = performance.now()
+    let saveIn = 0
+    const timer = window.setInterval(() => {
+      const now = performance.now()
+      const seconds = Math.min(1, Math.max(0, (now - lastTick) / 1000))
+      lastTick = now
+      const current = dataRef.current
+      if (document.hidden || !document.hasFocus() || current.paused || current.restaurant.paused || !isRestaurantServing(current.restaurant)) return
+      const result = restaurantAction(current.restaurant, current.coins, { type: 'tick', seconds })
+      saveIn += seconds
+      const save = saveIn >= 5 || result.coins !== current.coins || result.restaurant.phase !== current.restaurant.phase
+      if (save) saveIn = 0
+      commit({ ...current, restaurant: result.restaurant, coins: result.coins }, save)
+      if (result.message) setRestaurantMessage(result.message)
+      if (result.sound && !current.soundMuted) playCafeSound(result.sound, current.soundVolume)
+    }, 500)
+    return () => {
+      window.clearInterval(timer)
+      // Save the paused point when navigating away, rather than relying on a later autosave.
+      if (readyRef.current) window.desktopPets.saveState(dataRef.current)
+    }
+  }, [ready, panelPage, selected, commit])
 
   useEffect(() => {
     let mounted = true
@@ -931,8 +969,8 @@ export default function App() {
       const pos: CSSProperties = { left: pet.x - desktop.origin.x, top: pet.y - desktop.origin.y }
       const localX = pet.x - desktop.origin.x
       const localY = pet.y - desktop.origin.y
-      const panelWidth = Math.min(desktop.width - 28, panelPage === 1 ? 310 : panelPage === 6 || panelPage === 7 ? 760 : panelPage === 8 ? 420 : 480)
-      const panelHeight = Math.min(700, desktop.height * .78)
+      const panelWidth = Math.min(desktop.width - 28, panelPage === 9 ? 1040 : panelPage === 1 ? 310 : panelPage === 6 || panelPage === 7 ? 760 : panelPage === 8 ? 420 : 480)
+      const panelHeight = panelPage === 9 ? Math.min(940, desktop.height * .92) : Math.min(700, desktop.height * .78)
       const cardOnTop = localY > desktop.height * .52
       const cardFitsRight = localX + PET_WIDTH + panelWidth + 18 < desktop.width
       const cardLeft = cardOnTop ? (localX > desktop.width - panelWidth - 20 ? -panelWidth - 8 : 0) : (cardFitsRight ? 180 : -panelWidth - 10)
@@ -949,9 +987,9 @@ export default function App() {
           <span className="name-tag"><i className={`status-dot ${low ? 'needs-care' : ''}`} />{LABELS[id]}{low && <em>{low}</em>}</span>
           {data.paused && <span className="paused-mark">休息中</span>}
         </button>
-        {isSelected && <section key={panelPage} className={`care-card ${panelPage === 1 ? 'pet-page-card' : 'activity-card'} ${panelPage === 6 ? 'wardrobe-card' : ''} ${panelPage === 7 ? 'outfit-store-card' : ''}`} style={{ ...cardStyle, width: panelWidth }} aria-label={`${LABELS[id]}状态面板`} onPointerEnter={pointerEnter} onPointerLeave={pointerLeave} onPointerDown={panelPointerDown} onPointerMove={panelPointerMove} onPointerUp={panelPointerUp} onPointerCancel={panelPointerUp}>
-          <div className="card-head"><div><div className="eyebrow">{IS_TEST_BUILD ? '全服饰解锁测试版' : panelPage === 1 ? '陪伴小档案' : '大款的共享空间'}</div><h2>{panelPage === 1 ? LABELS[id] : panelPage === 2 ? '小厨房' : panelPage === 3 ? '小菜园' : panelPage === 4 ? '化肥工坊' : panelPage === 5 ? '订单中心' : panelPage === 6 ? '衣服仓库' : panelPage === 7 ? '穿搭商店' : '设置'} <span>{panelPage === 1 ? '暹罗猫 · 蓝眼重点色' : `当前陪伴：${LABELS[id]}`}</span></h2></div><div className="card-head-actions"><button className={`pin-button ${data.alwaysOnTop !== false ? 'active' : ''}`} onClick={() => commit({ ...dataRef.current, alwaysOnTop: dataRef.current.alwaysOnTop === false })} aria-label={data.alwaysOnTop === false ? '置顶宠物和页面' : '取消宠物和页面置顶'} title={data.alwaysOnTop === false ? '点击后大款和所有页面保持在最前面' : '已置顶：大款和所有页面保持在最前面'}>{data.alwaysOnTop === false ? '📍' : '📌'}</button><button className="icon-button close" onClick={() => { setSelected(null); pointerLeave() }} aria-label="关闭">×</button></div></div>
-          <div className="pet-intro">{panelPage === 1 ? '圆滚滚的大款 · 白手套蓝眼睛' : panelPage === 2 ? '搭配食材，为大款做一顿香喷喷的饭' : panelPage === 3 ? '种下作物，收获新鲜食材' : panelPage === 4 ? '收集便便制作化肥，帮助作物生长' : panelPage === 5 ? '完成订单与每日任务，赚取金币' : panelPage === 6 ? '看看收藏的穿搭，点击就能换装' : panelPage === 7 ? '挑选限时上架的大款专属穿搭' : '调节声音、兑换礼包，或退出桌宠'}</div>
+        {isSelected && <section key={panelPage} className={`care-card ${panelPage === 1 ? 'pet-page-card' : 'activity-card'} ${panelPage === 6 ? 'wardrobe-card' : ''} ${panelPage === 7 ? 'outfit-store-card' : ''} ${panelPage === 9 ? 'restaurant-card' : ''}`} style={{ ...cardStyle, width: panelWidth }} aria-label={`${LABELS[id]}状态面板`} onPointerEnter={pointerEnter} onPointerLeave={pointerLeave} onPointerDown={panelPointerDown} onPointerMove={panelPointerMove} onPointerUp={panelPointerUp} onPointerCancel={panelPointerUp}>
+          <div className="card-head"><div><div className="eyebrow">{IS_TEST_BUILD ? '全服饰解锁测试版' : panelPage === 1 ? '陪伴小档案' : '大款的共享空间'}</div><h2>{panelPage === 1 ? LABELS[id] : panelPage === 2 ? '小厨房' : panelPage === 3 ? '小菜园' : panelPage === 4 ? '化肥工坊' : panelPage === 5 ? '订单中心' : panelPage === 6 ? '衣服仓库' : panelPage === 7 ? '穿搭商店' : panelPage === 9 ? '大款餐厅' : '设置'} <span>{panelPage === 1 ? '暹罗猫 · 蓝眼重点色' : `当前陪伴：${LABELS[id]}`}</span></h2></div><div className="card-head-actions"><button className={`pin-button ${data.alwaysOnTop !== false ? 'active' : ''}`} onClick={() => commit({ ...dataRef.current, alwaysOnTop: dataRef.current.alwaysOnTop === false })} aria-label={data.alwaysOnTop === false ? '置顶宠物和页面' : '取消宠物和页面置顶'} title={data.alwaysOnTop === false ? '点击后大款和所有页面保持在最前面' : '已置顶：大款和所有页面保持在最前面'}>{data.alwaysOnTop === false ? '📍' : '📌'}</button><button className="icon-button close" onClick={() => { setSelected(null); pointerLeave() }} aria-label="关闭">×</button></div></div>
+          <div className="pet-intro">{panelPage === 1 ? '圆滚滚的大款 · 白手套蓝眼睛' : panelPage === 2 ? '搭配食材，为大款做一顿香喷喷的饭' : panelPage === 3 ? '种下作物，收获新鲜食材' : panelPage === 4 ? '收集便便制作化肥，帮助作物生长' : panelPage === 5 ? '完成订单与每日任务，赚取金币' : panelPage === 6 ? '看看收藏的穿搭，点击就能换装' : panelPage === 7 ? '挑选限时上架的大款专属穿搭' : panelPage === 9 ? '款老板的小店开张啦，今天也有热乎乎的好味道' : '调节声音、兑换礼包，或退出桌宠'}</div>
           <nav className="page-tabs" aria-label="面板页面">
             <button className={panelPage === 1 ? 'active' : ''} onClick={() => setPanelPage(1)}>🐾 宠物</button>
             <button className={panelPage === 2 ? 'active' : ''} onClick={() => setPanelPage(2)}>🍳 厨房</button>
@@ -960,6 +998,7 @@ export default function App() {
             <button className={panelPage === 5 ? 'active' : ''} onClick={() => setPanelPage(5)}>📦 订单</button>
             <button className={panelPage === 6 ? 'active' : ''} onClick={() => setPanelPage(6)}>👘 穿搭</button>
             <button className={panelPage === 7 ? 'active' : ''} onClick={() => setPanelPage(7)}>🛍️ 商店</button>
+            <button className={panelPage === 9 ? 'active' : ''} onClick={() => setPanelPage(9)}>🍽️ 餐厅</button>
           </nav>
           {panelPage === 1 ? <>
             <div className="stats">
@@ -978,8 +1017,8 @@ export default function App() {
               <button className="care-action" onClick={() => care(id, 'walk')}><span>🐾</span>出去逛逛</button><button className="care-action" onClick={() => care(id, 'play')}><span>🎾</span>陪我玩</button><button className="care-action" onClick={() => care(id, 'pet')}><span>🤍</span>摸摸我</button><button className="care-action" onClick={() => care(id, 'sun')}><span>☀️</span>晒太阳</button><button className="care-action" disabled={pet.cleanliness >= 85} title={pet.cleanliness >= 85 ? '清洁度低于 85% 时可以洗澡' : '随时可以洗澡'} onClick={() => care(id, 'bath')}><span>🫧</span>洗澡澡</button>
             </div>
             <button className="settings-open" onClick={() => setPanelPage(8)}>⚙ 设置</button>
-          </> : panelPage === 8 ? <SettingsPage state={data} onVolume={(soundVolume) => commit({ ...dataRef.current, soundVolume })} onToggleMuted={() => commit({ ...dataRef.current, soundMuted: !dataRef.current.soundMuted })} onPreviewSound={() => { if (!dataRef.current.soundMuted) playYip(dataRef.current.soundVolume) }} onRedeem={(code) => { const result = redeemGiftCode(dataRef.current, code); if (result.success) commit(result.state); return result }} onBack={() => setPanelPage(1)} onQuit={quitPet} /> : panelPage === 6 ? <WardrobePage state={data.wardrobe} action={visibleAction} facingLeft={facingLeft[id]} visualStyle={visualStyle} paused={data.paused} onEquip={equipOutfit} /> : panelPage === 7 ? <OutfitStorePage state={data.wardrobe} coins={data.coins} poopCount={data.compost.poopCount} now={clock} onBuy={buyOutfit} onRedeemPoop={redeemPoopOutfit} visualStyle={visualStyle} /> : <ActivityPages page={panelPage as 2 | 3 | 4 | 5} petId={id} state={data} now={clock} onCook={startCooking} onCollect={collectCooking} onCollectAllMeals={collectAllReadyMeals} onPlant={plantCrop} onPlantAll={plantAllCrops} onWater={waterCrop} onHarvest={harvestCrop} onHarvestAll={harvestAllCrops} onDig={digCrop} onFertilize={fertilizeCrop} onStartFertilizer={startFertilizer} onCollectFertilizer={collectFertilizer} onUnlockFertilizerFactory={unlockFertilizerFactory} onToggleConstipation={(enabled) => { const current = dataRef.current; const pet = { ...current.pets.dakuan, ...(enabled ? { lastPoopAt: Date.now() } : {}) }; commit({ ...current, constipationMode: enabled, pets: { ...current.pets, dakuan: pet } }) }} onClaimOrder={claimOrder} onClaimDailyTask={claimDailyTask} weightTenthsJin={pet.weightTenthsJin} />}
-          <div className="card-footer"><span>{panelPage === 1 ? ACTION_LABEL[actions[id]] : panelPage === 2 ? '做好的餐点会出现在宠物页粮柜' : panelPage === 3 ? '浇水、施肥和作物生长都会保存' : panelPage === 4 ? '收集便便制作化肥，催熟菜园作物' : panelPage === 5 ? '完成订单领取金币，购买喜欢的装饰' : panelPage === 6 ? '选择装饰后会立即同步到桌面大款' : panelPage === 7 ? '购买后的整套服饰会保存在衣服仓库' : '设置和兑换记录会自动保存'}</span></div>
+          </> : panelPage === 9 ? <RestaurantPage state={data.restaurant} coins={data.coins} globallyPaused={data.paused} soundMuted={data.soundMuted} volume={data.soundVolume} eventMessage={restaurantMessage} onAction={operateRestaurant} /> : panelPage === 8 ? <SettingsPage state={data} onVolume={(soundVolume) => commit({ ...dataRef.current, soundVolume })} onToggleMuted={() => commit({ ...dataRef.current, soundMuted: !dataRef.current.soundMuted })} onPreviewSound={() => { if (!dataRef.current.soundMuted) playYip(dataRef.current.soundVolume) }} onRedeem={(code) => { const result = redeemGiftCode(dataRef.current, code); if (result.success) commit(result.state); return result }} onBack={() => setPanelPage(1)} onQuit={quitPet} /> : panelPage === 6 ? <WardrobePage state={data.wardrobe} action={visibleAction} facingLeft={facingLeft[id]} visualStyle={visualStyle} paused={data.paused} onEquip={equipOutfit} /> : panelPage === 7 ? <OutfitStorePage state={data.wardrobe} coins={data.coins} poopCount={data.compost.poopCount} now={clock} onBuy={buyOutfit} onRedeemPoop={redeemPoopOutfit} visualStyle={visualStyle} /> : <ActivityPages page={panelPage as 2 | 3 | 4 | 5} petId={id} state={data} now={clock} onCook={startCooking} onCollect={collectCooking} onCollectAllMeals={collectAllReadyMeals} onPlant={plantCrop} onPlantAll={plantAllCrops} onWater={waterCrop} onHarvest={harvestCrop} onHarvestAll={harvestAllCrops} onDig={digCrop} onFertilize={fertilizeCrop} onStartFertilizer={startFertilizer} onCollectFertilizer={collectFertilizer} onUnlockFertilizerFactory={unlockFertilizerFactory} onToggleConstipation={(enabled) => { const current = dataRef.current; const pet = { ...current.pets.dakuan, ...(enabled ? { lastPoopAt: Date.now() } : {}) }; commit({ ...current, constipationMode: enabled, pets: { ...current.pets, dakuan: pet } }) }} onClaimOrder={claimOrder} onClaimDailyTask={claimDailyTask} weightTenthsJin={pet.weightTenthsJin} />}
+          <div className="card-footer"><span>{panelPage === 1 ? ACTION_LABEL[actions[id]] : panelPage === 2 ? '做好的餐点会出现在宠物页粮柜' : panelPage === 3 ? '浇水、施肥和作物生长都会保存' : panelPage === 4 ? '收集便便制作化肥，催熟菜园作物' : panelPage === 5 ? '完成订单领取金币，购买喜欢的装饰' : panelPage === 6 ? '选择装饰后会立即同步到桌面大款' : panelPage === 7 ? '购买后的整套服饰会保存在衣服仓库' : panelPage === 9 ? '离开餐厅暂停营业，金币与设备进度自动保存' : '设置和兑换记录会自动保存'}</span></div>
           <button className={`pause-button ${data.paused ? 'is-paused' : ''}`} onClick={togglePaused}>{data.paused ? '▶ 继续活动' : 'Ⅱ 让大款原地休息'}</button>
         </section>}
       </div>

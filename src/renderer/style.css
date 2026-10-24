@@ -98,8 +98,9 @@ body { user-select: none; }
 .page-tabs { display: grid; grid-template-columns: repeat(10, minmax(0, 1fr)); gap: 4px; margin: 10px 0 7px; padding: 4px; border-radius: 12px; background: #f0ede6; }
 .page-tabs button { min-height: 30px; border: 0; border-radius: 9px; background: transparent; color: #747c85; font-family: inherit; font-size: 11px; font-weight: 800; cursor: pointer; }
 .page-tabs button:nth-child(-n+5) { grid-column: span 2; }
-.page-tabs button:nth-child(6) { grid-column: 2 / span 4; }
-.page-tabs button:nth-child(7) { grid-column: 6 / span 4; }
+.page-tabs button:nth-child(6) { grid-column: 1 / span 3; }
+.page-tabs button:nth-child(7) { grid-column: 4 / span 3; }
+.page-tabs button:nth-child(8) { grid-column: 7 / span 4; }
 .page-tabs button.active { background: #fff; color: #516b55; box-shadow: 0 2px 7px #45391b18; }
 .affection-card { margin-top: 9px; padding: 9px 11px 8px; border-radius: 12px; background: linear-gradient(110deg,#fff2f0,#fff8ed); }
 .affection-heading { display: flex; justify-content: space-between; align-items: center; color: #a76165; font-size: 10px; font-weight: 800; }

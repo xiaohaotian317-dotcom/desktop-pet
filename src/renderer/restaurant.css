@@ -1,0 +1,216 @@
+.care-card.restaurant-card { background: #faf7ef; padding: 16px 18px; cursor: move; }
+.restaurant-card .pet-intro { margin-bottom: 7px; }
+.restaurant-card .card-head h2 { color: #405d4d; }
+.restaurant-page { --cafe-green: #466950; --cafe-soft: #e9eedf; --cafe-ink: #534a3d; color: var(--cafe-ink); font-size: 13px; cursor: default; }
+.restaurant-page button { font: inherit; cursor: pointer; transition: background .15s, transform .15s; }
+.restaurant-page button:disabled { cursor: default; opacity: .45; }
+.restaurant-page button:focus-visible { outline: 3px solid #dca269; outline-offset: 2px; }
+.restaurant-page h3, .restaurant-page h4, .restaurant-page p { margin: 0; }
+.restaurant-page button:not(:disabled):active { transform: translateY(1px); }
+.cafe-topline, .cafe-topline > div { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+.cafe-topline { padding: 8px 0 11px; }
+.cafe-topline > div { color: #8b826e; font-size: 12px; }
+.cafe-day-pill { padding: 5px 10px; border: 1px solid #dce3ce; border-radius: 8px; background: #eff2e6; color: #5e744d; font-weight: 800; }
+.cafe-wallet { color: #926b35; font-size: 18px; font-variant-numeric: tabular-nums; }
+.cafe-wallet small { margin-left: 6px; font-size: 10px; color: #9c8f78; font-weight: 500; }
+.cafe-tabs { display: flex; gap: 22px; margin-bottom: 12px; border-bottom: 1px solid #e4ddcc; }
+.cafe-tabs button { border: 0; border-bottom: 3px solid transparent; padding: 9px 3px; background: none; color: #8b8476; font-weight: 700; }
+.cafe-tabs button[aria-pressed=true] { border-color: #6a8655; color: #426043; }
+.cafe-shopfront { position: relative; height: 230px; overflow: hidden; border-radius: 14px; border: 1px solid #dddbc8; background: linear-gradient(90deg,#e5e9dd 0 2%,#f1eee2 2% 98%,#e5e9dd 98%); }
+.cafe-awning { position: absolute; inset: 0 0 auto; height: 38px; background: repeating-linear-gradient(90deg,#718b68 0 38px,#f5edda 38px 76px); border-radius: 0 0 14px 14px; border-bottom: 5px solid #597454; box-shadow: 0 8px 0 #d7d9c640; }
+.cafe-sign { position: absolute; top: 55px; left: 9%; display: grid; gap: 7px; width: 47%; text-align: center; }
+.cafe-sign b { color: #496346; font-size: 38px; letter-spacing: .18em; text-shadow: 1px 2px #fffdf4; }
+.cafe-sign small { color: #a48b5e; font-size: 11px; letter-spacing: .16em; }
+.cafe-sign > span { color: #8d846b; font-size: 12px; letter-spacing: .08em; }
+.cafe-window { position: absolute; top: 50px; right: 7%; width: 30%; height: 140px; border: 8px solid #bcaf8c; border-bottom: 0; border-radius: 45% 45% 0 0; background: linear-gradient(145deg,#bbd2c7,#eff4d9); box-shadow: inset 0 0 0 4px #e8e1c9; }
+.cafe-window > span { display: block; padding-top: 15px; color: #768879; font-size: 10px; text-align: center; }
+.cafe-owner { position: absolute; bottom: 12px; right: 15%; width: 150px; height: 150px; }
+.cafe-owner .character { transform: scale(1.04); transform-origin: bottom; }
+.cafe-lobby-plant { position: absolute; bottom: 25px; right: 4%; font-size: 50px; }
+.cafe-front-counter { position: absolute; inset: auto 0 0; height: 44px; border-top: 7px solid #bb9870; background: repeating-linear-gradient(90deg,#d1b58d 0 42px,#c6a87f 42px 44px); }
+.cafe-front-counter span { display: inline-block; margin: 6px 0 0 11%; padding: 3px 12px; border-radius: 4px; background: #f7edda; color: #937752; font-size: 11px; }
+.cafe-welcome { padding: 20px 5px 17px; }
+.cafe-welcome h3 { margin-bottom: 8px; font-size: 20px; color: #4f6248; font-weight: 800; }
+.cafe-welcome p { font-size: 13px; color: #92836c; line-height: 1.8; }
+.cafe-opening-steps { display: flex; flex-wrap: wrap; gap: 12px 26px; margin-top: 17px; }
+.cafe-opening-steps span { display: flex; align-items: center; gap: 8px; font-size: 12px; color: #776f5b; }
+.cafe-opening-steps b { color: #a5b18b; font-size: 19px; font-weight: 500; }
+.cafe-open-row { display: flex; align-items: center; justify-content: space-between; gap: 14px; padding: 15px 17px; background: #eaf0df; border: 1px solid #d9e2c9; border-radius: 12px; }
+.cafe-open-row > div { display: grid; gap: 6px; }
+.cafe-open-row b { font-size: 14px; color: #567344; }
+.cafe-open-row small { font-size: 11px; color: #8a9778; line-height: 1.5; }
+.restaurant-page .cafe-primary { min-height: 42px; padding: 10px 24px; border: 0; border-radius: 9px; background: #4d714e; color: #fffdf0; font-weight: 800; white-space: nowrap; box-shadow: 0 3px 0 #354e35; }
+.cafe-primary:hover { background: #3c603f; }
+.cafe-lifetime { display: flex; gap: 20px; align-items: center; flex-wrap: wrap; padding: 14px 3px 5px; font-size: 11px; color: #9b917d; }
+.cafe-lifetime b { color: #6b7a55; }
+.cafe-lifetime button { margin-left: auto; border: 0; background: none; color: #758953; font-size: 12px; }
+.cafe-report { margin: 12px 0; padding: 17px; border: 1px solid #eadfc6; border-radius: 12px; background: #fffaf0; }
+.cafe-report-heading { display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap; }
+.cafe-report-heading b { font-size: 16px; }
+.cafe-report-heading > span { font-size: 12px; color: #8ca264; }
+.cafe-report-numbers { display: flex; gap: 40px; flex-wrap: wrap; padding: 14px 0; }
+.cafe-report-numbers > span { display: grid; gap: 4px; color: #9e8e72; font-size: 12px; }
+.cafe-report-numbers strong { font-size: 26px; font-weight: 800; color: #65814d; }
+.cafe-report-numbers small { font-size: 10px; }
+.cafe-report p { color: #a08e76; font-size: 11px; line-height: 1.7; }
+.cafe-shift-bar { display: flex; align-items: center; gap: 18px; padding: 10px 12px; border-radius: 10px 10px 0 0; border: 1px solid #dde3ce; background: #e9efdc; font-size: 12px; }
+.cafe-shift-bar > span:first-child { color: #51724b; font-size: 19px; font-weight: 800; font-variant-numeric: tabular-nums; }
+.cafe-shift-bar > span.closing { color: #bc7852; }
+.cafe-shift-bar > span:not(:first-child) { color: #8d9277; }
+.cafe-shift-bar b { color: #617344; }
+.cafe-shift-bar button { min-height: 29px; border: 1px solid #d2d9bf; border-radius: 6px; padding: 3px 9px; background: #f9fbee; color: #6d7856; font-size: 11px; }
+.cafe-shift-bar button:first-of-type { margin-left: auto; }
+.cafe-shift-bar button:last-child { background: transparent; border-color: transparent; color: #9a927e; }
+.cafe-paused, .cafe-end-confirm { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; padding: 12px; background: #fff1d8; color: #a27f4a; font-size: 12px; }
+.cafe-paused span { font-size: 11px; }
+.cafe-end-confirm { border: 1px solid #eed3b0; border-radius: 7px; margin-top: 7px; }
+.cafe-end-confirm button { padding: 5px 10px; border: 1px solid #d5b587; background: #fffcf0; border-radius: 6px; color: #947042; }
+.cafe-customer-room { display: grid; grid-template-columns: repeat(var(--cafe-seats), minmax(0,1fr)); gap: 10px; padding: 16px 20px 0; min-height: 235px; background: radial-gradient(ellipse at 30% 0,#f4efda,transparent),linear-gradient(#eaeada,#f1ebdc); border-right: 1px solid #e3ddc9; border-left: 1px solid #e3ddc9; }
+.cafe-customer { display: flex; flex-direction: column; align-items: center; position: relative; min-width: 0; }
+.cafe-order-bubble { position: relative; display: grid; align-content: center; gap: 4px; min-height: 88px; width: 100%; max-width: 245px; padding: 8px 10px; border: 1px solid #ded8c1; border-radius: 13px; background: #fffdf1; color: #7d7057; text-align: left; box-shadow: 0 3px 0 #d8d0b536; }
+.cafe-order-bubble::after { content: ''; position: absolute; bottom: -5px; left: 50%; width: 8px; height: 8px; transform: rotate(45deg); background: #fffdf1; border-bottom: 1px solid #ded8c1; border-right: 1px solid #ded8c1; }
+.cafe-order-bubble > b { font-size: 13px; color: #5c634b; }
+.cafe-order-bubble > span, .cafe-order-bubble > strong { font-size: 11px; }
+.cafe-order-bubble > strong { color: #7e9b5d; }
+.cafe-order-ingredients { display: flex; flex-wrap: wrap; gap: 2px 7px; line-height: 1.5; }
+.cafe-order-ingredients span { white-space: nowrap; font-size: 10px; }
+.cafe-order-bubble .cafe-omit { color: #ba7157; font-size: 10px; }
+.cafe-order-extras { color: #9b8154; }
+.cafe-order-bubble .cafe-coin { font-size: 24px; color: #b98a36; }
+.cafe-customer.selected .cafe-order-bubble { border: 2px solid #8b9f69; padding: 7px 9px; background: #fffff3; }
+.cafe-customer.selected .cafe-order-bubble::after { border-color: #8b9f69; }
+.cafe-cat-trigger { display: block; width: 116px; height: 103px; padding: 0; margin: 6px 0 -8px; border: 0; background: none; }
+.cafe-cat { display: block; width: 100%; height: 100%; transform-origin: bottom; animation: cafe-breathe 3.5s ease-in-out infinite; }
+.cafe-cat.happy { animation: cafe-happy .8s ease-in-out infinite; }
+.cafe-customer-name { display: flex; align-items: center; justify-content: center; flex-wrap: wrap; gap: 5px; color: #8c7b5f; font-size: 10px; min-height: 20px; }
+.cafe-customer-name small { padding: 2px 5px; background: #e2eacb; border-radius: 4px; font-size: 9px; color: #6f854a; }
+.cafe-patience { width: 65%; height: 4px; margin: 3px 0 7px; border-radius: 4px; background: #d8d1b9; overflow: hidden; }
+.cafe-patience i { display: block; height: 100%; background: #8ba96e; transition: width .4s linear; }
+.cafe-patience.urgent i { background: #d88e65; }
+.cafe-empty-seat { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 200px; color: #bbb79e; gap: 9px; }
+.cafe-empty-seat > span { font-size: 35px; color: #c7c9ac; }
+.cafe-empty-seat small { font-size: 11px; }
+.mischief .cafe-order-bubble { border-color: #bd9381; background: #fff1e6; }
+.cafe-counter-edge { position: relative; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 6px; padding: 8px 14px; border-radius: 0 0 7px 7px; border-top: 5px solid #b99a72; background: #cfb38b; color: #fff7e4; font-size: 10px; box-shadow: 0 4px 0 #e8ddc5; }
+.cafe-workbench { display: grid; grid-template-columns: 1fr 1.25fr 1fr; gap: 12px; margin-top: 17px; }
+.cafe-workbench > section { min-width: 0; padding: 11px; border: 1px solid #e4decd; border-radius: 12px; background: #fffdf6; }
+.cafe-workbench h3 { display: flex; align-items: center; gap: 7px; min-height: 24px; margin-bottom: 10px; font-size: 13px; color: #655f4a; }
+.cafe-workbench h3 > span { color: #b7bca3; font-weight: 500; font-size: 16px; }
+.cafe-workbench h3 small { margin-left: auto; color: #b7ab93; font-size: 9px; font-weight: 500; }
+.cafe-prep-pair { display: grid; grid-template-columns: 1fr 1fr; gap: 7px; margin-bottom: 10px; }
+.cafe-prep-pair > button { position: relative; display: grid; justify-items: center; gap: 4px; min-width: 0; padding: 7px 4px; border: 1px solid #e7ddc8; border-radius: 9px; background: #f7f1e3; color: #8e7856; }
+.cafe-prep-pair b { font-size: 12px; }
+.cafe-prep-pair small { font-size: 9px; line-height: 1.6; }
+.cafe-meat-spit { position: relative; display: flex; align-items: center; flex-direction: column; width: 75px; height: 75px; padding-top: 8px; }
+.cafe-meat-spit::before { content: ''; position: absolute; top: 2px; bottom: 0; left: 36px; width: 3px; background: #948a78; }
+.cafe-meat-spit::after { content: ''; position: absolute; bottom: 0; width: 62px; height: 9px; border-radius: 50%; background: #c9c2ad; box-shadow: 0 3px 0 #dcd4c0; }
+.cafe-meat-spit i { position: relative; display: block; width: 45px; height: 9px; border-radius: 4px 4px 2px 2px; background: linear-gradient(90deg,#965e3d,#c08a59 45%,#a46d41); border-top: 2px solid #e0ae75; transform: rotate(-3deg); }
+.cafe-meat-spit i:nth-child(2n) { width: 51px; transform: rotate(3deg); }
+.cafe-meat-spit i:nth-child(n+4) { width: 59px; }
+.cafe-potato-art { position: relative; display: grid; place-items: center; width: 75px; height: 75px; font-size: 40px; }
+.cafe-potato-art i { position: absolute; right: 1px; bottom: 1px; font-size: 27px; font-style: normal; }
+.cafe-machine-box { padding: 9px; border: 1px solid #e4ddcc; border-radius: 9px; background: #f5f2e9; }
+.cafe-machine-box > div:first-child { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 4px; margin-bottom: 7px; }
+.cafe-machine-box b { font-size: 12px; color: #76654b; }
+.cafe-machine-box small { font-size: 9px; color: #a4967b; }
+.cafe-machine-box > button { width: 100%; min-height: 29px; border: 1px solid #d7d9bd; border-radius: 6px; background: #e6ebd6; color: #78824e; font-size: 11px; font-weight: 700; }
+.cafe-machine-progress { position: relative; height: 20px; margin: 7px 0; overflow: hidden; border-radius: 5px; background: #e6e2d5; }
+.cafe-machine-progress i { position: absolute; inset: 0 auto 0 0; background: #d5dfba; transition: width .4s linear; }
+.cafe-machine-progress > span { position: absolute; inset: 0; display: grid; place-items: center; font-size: 9px; color: #8d8a72; }
+.cafe-machine-progress.ready i { background: #bccc98; }
+.cafe-machine-progress.burnt i { background: #e0b59a; }
+.cafe-restock-label { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 4px; margin: 12px 0 6px; color: #8b8069; font-size: 11px; font-weight: 700; }
+.cafe-restock-label small { color: #b6ac95; font-size: 9px; font-weight: 500; }
+.cafe-restocks { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 5px; }
+.cafe-restocks button { padding: 7px 2px; border: 1px solid #e8e2d3; border-radius: 6px; background: #fdfbf4; color: #877b65; font-size: 10px; }
+.cafe-restocks small { display: block; margin-top: 3px; font-size: 9px; color: #a89b81; }
+.cafe-tray-tabs { display: flex; gap: 3px; margin-left: auto; }
+.cafe-tray-tabs button { min-width: 25px; min-height: 24px; padding: 2px; border: 1px solid #e1ddcf; border-radius: 5px; background: #f5f2e8; color: #958a71; font-size: 11px; }
+.cafe-tray-tabs button[aria-pressed=true] { background: #dfe8ce; border-color: #aebf94; color: #6a824f; }
+.cafe-selected-order { display: flex; align-items: center; justify-content: space-between; gap: 5px; flex-wrap: wrap; min-height: 29px; padding: 6px 8px; border-radius: 6px; background: #f2f4e9; color: #97a17e; font-size: 10px; }
+.cafe-selected-order b { color: #71865c; font-size: 11px; }
+.cafe-wrap-art { display: block; width: 100%; height: 138px; }
+.cafe-tray-caption { min-height: 23px; margin: -7px 0 7px; text-align: center; font-size: 10px; color: #a19070; }
+.cafe-ingredients { display: grid; grid-template-columns: repeat(4,minmax(0,1fr)); gap: 5px; }
+.cafe-ingredients button { display: grid; justify-items: center; gap: 3px; padding: 7px 2px; min-width: 0; border: 1px solid #e3dfd0; border-radius: 8px; background: #fbf8ee; color: #80745c; }
+.cafe-ingredients button > span { font-size: 23px; }
+.cafe-ingredients button b { font-size: 10px; }
+.cafe-ingredients button small { font-size: 9px; color: #b4a07c; }
+.cafe-ingredients button.added { opacity: 1; border-color: #c5d2a9; background: #edf1df; }
+.cafe-ingredients button.added small { color: #7e985b; }
+.cafe-assembly-actions { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 5px; margin-top: 10px; }
+.cafe-assembly-actions button { min-height: 34px; padding: 5px 1px; border: 1px solid #dce0c9; border-radius: 6px; background: #edf0e0; color: #6c7c53; font-size: 11px; font-weight: 700; }
+.cafe-assembly-actions .cafe-serve { background: #5b7951; color: #fffbed; border-color: #5b7951; }
+.cafe-tray-tools { display: flex; align-items: center; justify-content: space-between; margin-top: 8px; gap: 4px; }
+.cafe-tray-tools button { border: 0; background: transparent; padding: 4px 0; color: #b0a48d; font-size: 10px; }
+.cafe-tray-tools button:last-child:not(:first-child) { color: #ae8e59; }
+.cafe-drinks { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 7px; margin: 10px 0; }
+.cafe-drink-machine { display: grid; min-width: 0; padding: 8px 5px; border: 1px solid #e6dfce; border-radius: 8px; background: #fbf7ed; text-align: center; }
+.cafe-drink-machine > span { font-size: 30px; }
+.cafe-drink-machine > b { font-size: 10px; margin-top: 3px; color: #8b7a5f; }
+.cafe-drink-machine .cafe-machine-progress { height: 17px; margin: 5px 0; }
+.cafe-drink-machine > button { min-height: 27px; padding: 4px 1px; margin-top: 5px; border: 1px solid #d9dcc5; border-radius: 5px; background: #f0f0dd; color: #858957; font-size: 10px; }
+.cafe-sides { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 6px; }
+.cafe-sides > button { display: flex; align-items: center; justify-content: center; flex-wrap: wrap; gap: 3px; min-width: 0; padding: 8px 3px; border: 1px solid #e6e0d0; border-radius: 6px; background: #fbf8ef; color: #9b8b6a; font-size: 18px; }
+.cafe-sides b, .cafe-sides small { font-size: 9px; font-weight: 500; }
+.cafe-notice { display: flex; align-items: center; gap: 8px; min-height: 38px; margin-top: 13px; padding: 8px 10px; border: 1px dashed #dedbc7; border-radius: 7px; background: #f6f3e9; color: #9a8c70; font-size: 11px; line-height: 1.7; }
+.cafe-section-note { margin: 5px 0 14px; color: #a39377; font-size: 12px; line-height: 1.7; }
+.cafe-upgrade-grid { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 12px; }
+.cafe-upgrade { display: grid; grid-template-columns: 42px minmax(0,1fr); align-items: start; gap: 10px; padding: 15px 12px; border: 1px solid #e3dcc9; border-radius: 12px; background: #fffcf4; }
+.cafe-upgrade-icon { display: grid; place-items: center; width: 40px; height: 40px; border-radius: 10px; background: #eeeeda; font-size: 24px; }
+.cafe-upgrade h3 { display: flex; align-items: center; gap: 5px; flex-wrap: wrap; color: #6f7050; font-size: 13px; }
+.cafe-upgrade h3 small { color: #aaa086; font-size: 10px; font-weight: 500; }
+.cafe-upgrade p { min-height: 53px; margin-top: 7px; color: #a2957c; font-size: 11px; line-height: 1.7; }
+.cafe-upgrade-levels { display: flex; gap: 4px; padding: 7px 0 0; }
+.cafe-upgrade-levels i { width: 20px; height: 4px; border-radius: 4px; background: #ece7d7; }
+.cafe-upgrade-levels i.filled { background: #a5b87c; }
+.cafe-upgrade > button { grid-column: 1/-1; min-height: 32px; border: 1px solid #dbe1c9; border-radius: 7px; background: #ebf0dc; color: #76834f; font-size: 12px; font-weight: 700; }
+.cafe-guide { padding: 8px 4px; color: #93876e; line-height: 1.85; font-size: 12px; }
+.cafe-guide h3 { margin-bottom: 12px; color: #66794f; font-size: 19px; }
+.cafe-guide ol { margin: 0; padding-left: 23px; }
+.cafe-guide li { padding: 6px 0; }
+.cafe-guide b { color: #75835d; }
+.cafe-guide-grid { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 10px; margin-top: 15px; }
+.cafe-guide-grid section { padding: 12px; border: 1px solid #e5dfcc; border-radius: 10px; background: #fffcf3; }
+.cafe-guide-grid h4 { font-size: 13px; color: #7b865b; margin-bottom: 5px; }
+@keyframes cafe-breathe { 50% { transform: translateY(-1px); } }
+@keyframes cafe-happy { 50% { transform: rotate(2deg); } }
+@media (max-width: 800px) {
+  .cafe-workbench { grid-template-columns: minmax(0,1fr) minmax(0,1.15fr); }
+  .cafe-workbench > .cafe-finish { grid-column: 1/-1; display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 10px; }
+  .cafe-finish > h3 { grid-column: 1/-1; margin-bottom: 0; }
+  .cafe-finish .cafe-drinks { margin: 0; }
+  .cafe-finish > .cafe-restock-label { display: none; }
+  .cafe-upgrade-grid { grid-template-columns: repeat(2,minmax(0,1fr)); }
+  .cafe-customer-room { gap: 7px; padding: 12px 9px 0; }
+}
+@media (max-width: 540px) {
+  .care-card.restaurant-card { padding: 12px 10px; }
+  .restaurant-card .card-head h2 span { display: none; }
+  .cafe-shopfront { height: 200px; }
+  .cafe-sign { left: 4%; }
+  .cafe-sign b { font-size: 25px; }
+  .cafe-sign > span { font-size: 9px; }
+  .cafe-owner { right: 4%; bottom: 12px; transform: scale(.85); transform-origin: bottom; }
+  .cafe-window { right: 6%; width: 37%; }
+  .cafe-lobby-plant { display: none; }
+  .cafe-front-counter span { font-size: 9px; margin-left: 5%; }
+  .cafe-welcome h3 { font-size: 17px; }
+  .cafe-open-row { flex-wrap: wrap; }
+  .cafe-open-row > button { width: 100%; }
+  .cafe-workbench { grid-template-columns: minmax(0,1fr); }
+  .cafe-workbench > .cafe-finish { display: block; }
+  .cafe-finish > h3 { margin-bottom: 10px; }
+  .cafe-finish .cafe-drinks { margin: 10px 0; }
+  .cafe-finish > .cafe-restock-label { display: flex; }
+  .cafe-customer-room.seats-3, .cafe-customer-room.seats-4 { grid-template-columns: repeat(2,minmax(0,1fr)); }
+  .cafe-customer-room { min-height: 220px; }
+  .cafe-empty-seat { min-height: 190px; }
+  .cafe-shift-bar { gap: 9px; flex-wrap: wrap; padding: 8px; }
+  .cafe-shift-bar > span:first-child { font-size: 16px; }
+  .cafe-shift-bar button { font-size: 10px; }
+  .cafe-upgrade-grid, .cafe-guide-grid { grid-template-columns: minmax(0,1fr); }
+  .cafe-report-numbers { gap: 20px; }
+  .cafe-lifetime { gap: 10px; }
+}
+@media (prefers-reduced-motion: reduce) { .cafe-cat { animation: none; } }

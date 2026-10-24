@@ -1,3 +1,5 @@
+import type { RestaurantState } from './restaurant'
+
 export type PetId = 'dakuan'
 export type PetAction = 'idle' | 'walk' | 'run' | 'eat' | 'can' | 'play' | 'bath' | 'pet' | 'sun' | 'together' | 'wag' | 'bark' | 'sleep' | 'groom' | 'facewash' | 'stretch' | 'sunSleep' | 'hungry' | 'sad' | 'dirty' | 'ball' | 'pounce' | 'excited'
 export type CosmeticCategory = 'bell' | 'clothes' | 'hat' | 'scarf' | 'tie'
@@ -148,6 +150,7 @@ export interface PersistedState {
   constipationMode: boolean
   cosmetics: CosmeticState
   wardrobe: WardrobeState
+  restaurant: RestaurantState
   /** Whether the desktop pet overlay should stay above normal windows. */
   alwaysOnTop?: boolean
 }

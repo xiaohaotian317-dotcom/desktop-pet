@@ -1,6 +1,7 @@
 import type { IngredientId, PersistedState } from '../shared/types'
 import { createDailyTaskBoard } from '../shared/dailyTasks'
 import { normalizePlayerPreferences } from '../shared/rewards'
+import { normalizeRestaurant } from '../shared/restaurant'
 import { affectionLevel, createOrderBoard, emptyPlot, localDayKey } from './activities'
 import { createCosmeticState } from './cosmetics'
 import { createWardrobeState, normalizeWardrobe, unlockAchievementOutfits } from './outfits'
@@ -24,7 +25,7 @@ export function restoreSavedState(value: PersistedState | null, initial: Persist
   return {
     ...value,
     pets: { dakuan: restoredPet },
-    schemaVersion: 12,
+    schemaVersion: 13,
     paused: Boolean(value.paused), soundMuted: Boolean(value.soundMuted),
     ...normalizePlayerPreferences(value),
     affection: { ...initial.affection, ...(value.affection ?? {}) },
@@ -51,6 +52,7 @@ export function restoreSavedState(value: PersistedState | null, initial: Persist
     constipationMode: Boolean(value.constipationMode),
     cosmetics: value.cosmetics ?? createCosmeticState(now),
     wardrobe: unlockAchievementOutfits(normalizeWardrobe(value.wardrobe, now, isTestBuild), affectionLevel(value.affection?.dakuan ?? 0), weight, isTestBuild),
+    restaurant: normalizeRestaurant(value.restaurant),
     alwaysOnTop: value.alwaysOnTop !== false
   }
 }

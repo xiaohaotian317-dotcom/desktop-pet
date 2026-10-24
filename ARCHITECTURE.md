@@ -15,6 +15,8 @@
 - `src/renderer/ActivityPages.tsx`：厨房、菜园、化肥工坊和订单/每日任务页面。
 - `src/renderer/WardrobePages.tsx`：穿搭仓库预览及商店界面。
 - `src/renderer/SettingsPage.tsx`：同窗口设置页，包含静音、音量、试听、兑换表单和退出。
+- `src/renderer/RestaurantPage.tsx` 与 `restaurant.css`：同窗口餐厅页、营业操作台、原生 SVG 小猫/餐盘、升级与开店手册；老板展示复用现有奶油主厨图集，不改桌宠穿搭或所有权。
+- `src/shared/restaurant.ts`：餐厅状态类型、默认值/旧档归一化、订单随机生成、所有营业操作和计时转换；输出餐厅状态与共用金币，交给 `App.tsx` 一次提交。
 - `src/renderer/savedState.ts`：纯函数 `restoreSavedState`，填入新增字段并保留旧资产、计时及穿搭，用于启动恢复与迁移检查。
 - `src/shared/rewards.ts`：声音偏好默认值与兑换码的纯状态转换；兑换奖励与兑换记录一并更新，不重复授予服装所有权。
 - `src/renderer/activities.ts`：食谱、作物成长、亲密度、订单生成/需求与库存逻辑。
@@ -30,7 +32,7 @@
 
 renderer 以共享 `PersistedState` 保存游戏数据。主进程持有最近状态缓存，并以 IPC 提供载入和保存；状态变化会广播回 renderer。页面组件接收状态和回调，由 `App.tsx` 执行业务逻辑再统一提交状态。
 
-`PersistedState`（当前 schemaVersion 12）包含：
+`PersistedState`（当前 schemaVersion 13）包含：
 
 - `pets`、`affection`、`paused`、`soundMuted`、`alwaysOnTop`
 - `soundVolume`（0–100，旧档默认 100）、`redeemedCodes`（旧档默认空数组；“大款”礼包使用稳定 ID `dakuan-welcome`）
@@ -40,6 +42,7 @@ renderer 以共享 `PersistedState` 保存游戏数据。主进程持有最近�
 - `coins`、`orders`（订单板和每日任务）、`constipationMode`
 - `wardrobe`（整套服装所有权、穿着项、商店库存与刷新时刻）
 - `cosmetics`（历史独立配件数据；修改前确认当前依赖）
+- `restaurant`（营业天数/阶段、暂停点、配料库存、机器/补货剩余时间、顾客与餐盘、设备等级、当日/累计收入及上轮报告）
 
 归一化/迁移要保持旧版本字段并给新字段补默认值；不要把默认模板整体写回去覆盖旧档。每次新增状态字段时同步更新共享类型、初始化、读取迁移、保存及相关界面。
 
@@ -69,6 +72,13 @@ renderer 以共享 `PersistedState` 保存游戏数据。主进程持有最近�
 - 商店点击缩略图显示页内详情，用 `PetCharacter` 的同一套装图集绘制静止大图，避免独立弹窗。预览状态不写入所有权，也不更换桌面套装。
 - Web Audio 每次叫声的增益乘以持久化音量；0 音量不创建叫声。退出按钮与 Esc 共用先发送状态保存、再退出的入口。
 
+## 餐厅计时与金币
+
+- 面板页码 9 为餐厅，同一 Electron 窗口按屏幕边界调整到最多 1040px 宽；现有 5 个功能入口下面一行放穿搭、商店和餐厅，设置仍从宠物页底部进入。
+- `restaurantAction` 为纯状态转换，手动操作、设备购买、收钱和目标结算都从当前状态及当前 `coins` 计算，避免单独页面持有过期金币。自动结算通过阶段切换防止重复发奖。
+- `App.tsx` 每 500ms 推进最多 1 秒活动时间，仅餐厅页打开、窗口有焦点且两种暂停均未开启时推进；不按现实时间补算离线机器/顾客。每 5 秒自动保存，金币或阶段变化立即保存，离开页面额外保存当前暂停点。
+- 营业天数、设备、原料、半成品和顾客写入原 `pet-state.json`；恢复进行中的营业时先暂停。schema 12→13 沿用现有不可覆盖的迁移前备份，存档恢复进度评分计入累计收入、已投入设备金币和完成天数。
+
 ## 美术与动画
 
 - 宠物基准是 4 列 × 8 行的动作图集，每个动作 4 帧；渲染按相同动作/帧序驱动。
@@ -78,7 +88,7 @@ renderer 以共享 `PersistedState` 保存游戏数据。主进程持有最近�
 
 ## 构建与资源排除
 
-- 包管理器：pnpm；`package.json` 版本当前为 0.3.3。
+- 包管理器：pnpm；`package.json` 版本当前为 0.4.0。
 - `pnpm dev` 开发；`pnpm build` 构建 renderer/main；`pnpm dist:win` 生成 x64 便携、ARM64 便携和 x64 安装包；`pnpm dist:test` 生成使用独立标识/存档目录的测试包。
 - Windows 发行配置在 `package.json`；全服饰解锁测试配置在 `electron-builder.test.json`。
 - 打包仅包含 `out/main/`、`out/preload/`、`out/renderer/` 和 `package.json`；预览助手与检查数据不进入发布包。

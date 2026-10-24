@@ -1,6 +1,6 @@
 {
   "name": "dakuan-desktop-pet",
-  "version": "0.3.3",
+  "version": "0.4.0",
   "private": true,
   "description": "大款桌面宠物",
   "main": "out/main/index.js",

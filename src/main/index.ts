@@ -3,6 +3,7 @@ import { join } from 'node:path'
 import { appendFileSync, copyFileSync, existsSync, mkdirSync, readFileSync, readdirSync } from 'node:fs'
 import type { DesktopInfo, PersistedState } from '../shared/types'
 import { createDailyTaskBoard } from '../shared/dailyTasks'
+import { createRestaurantState } from '../shared/restaurant'
 import { atomicWriteState, readStateFile, writeStateFile } from './stateFiles'
 
 let petWindow: BrowserWindow | null = null
@@ -64,7 +65,8 @@ function stateProgressScore(state: PersistedState) {
   const planted = state.garden?.plots?.filter((plot) => Boolean(plot?.cropId)).length ?? 0
   const claimed = state.orders?.orders?.filter((order) => order?.claimed).length ?? 0
   const moved = Math.abs(number(state.pets.dakuan.x) - 340) + Math.abs(number(state.pets.dakuan.y) - 500)
-  return number(state.coins) * 10 + affection * 5 + Math.min(Math.max(0, weight - 1), 1_000_000) + ownedOutfits * 100_000 + ownedCosmetics * 10_000 + poop * 20 + ingredients * 10 + meals * 10 + planted * 100 + claimed * 50 + moved
+  const restaurantProgress = number(state.restaurant?.lifetimeRevenue) * 10 + number(state.restaurant?.upgradeSpent) * 10 + number(state.restaurant?.completedDays) * 1000
+  return number(state.coins) * 10 + affection * 5 + Math.min(Math.max(0, weight - 1), 1_000_000) + ownedOutfits * 100_000 + ownedCosmetics * 10_000 + poop * 20 + ingredients * 10 + meals * 10 + planted * 100 + claimed * 50 + moved + restaurantProgress
 }
 
 function legacyStatePaths() {
@@ -104,7 +106,7 @@ const initialState: PersistedState = {
   soundMuted: false,
   soundVolume: 100,
   redeemedCodes: [],
-  schemaVersion: 12,
+  schemaVersion: 13,
   affection: { dakuan: 0 },
   kitchen: {
     ingredients: { wheat: 0, catnip: 0, carrot: 0, fish: 0, pumpkin: 0, chicken: 0, milk: 0, silverherb: 0, goldfish: 0 },
@@ -120,6 +122,7 @@ const initialState: PersistedState = {
   constipationMode: false,
   cosmetics: { owned: [], equipped: { bell: null, clothes: null, hat: null, scarf: null, tie: null }, shop: { stock: [], nextRefreshAt: 0 } },
   wardrobe: { owned: [], equipped: null, shop: { stock: [], nextRefreshAt: 0 } },
+  restaurant: createRestaurantState(),
   alwaysOnTop: true
 }
 
